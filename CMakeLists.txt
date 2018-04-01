@@ -28,10 +28,10 @@ if (NOT ${COMPILER_IS_CLANG})
 	set (common_ldflags "${common_ldflags} -pthread")
 endif()
 add_compile_options (${common_cflags})
-set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
-set (CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags})
-set (CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags})
-set (CMAKE_STATIC_LINKER_FLAGS ${CMAKE_STATIC_LINKER_FLAGS} ${common_ldflags})
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
+set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
+set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${common_ldflags}")
 
 # rlog src files
 file (GLOB_RECURSE rlog_src_files
