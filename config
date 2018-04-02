@@ -9,6 +9,7 @@ Configuration:
     --help                      display this help and exit
     --debug                     build for debug
     --build-demo                build demo
+    --build-dir=DIR             build directory
 
 Cross Compile:
     --toolchain=DIR             toolchain install dir
@@ -16,6 +17,8 @@ Cross Compile:
     --cross-root-path=DIR       root dir for search dependencies libs
 CONFEOF
 }
+
+builddir="build"
 
 CMAKE_ARGS=
 for conf_opt
@@ -36,6 +39,9 @@ do
 		--build-demo)
 			CMAKE_ARGS=(${CMAKE_ARGS[@]} -DBUILD_DEMO=ON)
 			;;
+		--build-dir=*)
+			builddir=$conf_optarg
+			;;
 		--toolchain=*)
 			CMAKE_ARGS=(${CMAKE_ARGS[@]} -DTOOLCHAIN_HOME=$conf_optarg)
 			CROSS_COMPILE=yes
@@ -54,7 +60,7 @@ CUR_DIR=`pwd`
 CMAKE_ARGS=(${CMAKE_ARGS[@]} -DCMAKE_TOOLCHAIN_FILE=$CUR_DIR/cmake/toolchain.cmake)
 fi
 
-mkdir -p build
-cd build
+mkdir -p $builddir
+cd $builddir
 cmake .. \
 	${CMAKE_ARGS[@]}
