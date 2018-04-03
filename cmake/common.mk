@@ -1,8 +1,10 @@
+include(CMakeParseArguments)
+
 function (findPackage name flag)
 
 # parse arguments, rfp(rokid find package)
 set(options OPTIONAL)
-set(oneValueArgs HEADER INC_SUFFIX)
+set(oneValueArgs HEADER INC_SUFFIX LIB_PATH_SUFFIX)
 set(multiValueArgs LIBS HINTS)
 cmake_parse_arguments(rfp "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -11,11 +13,18 @@ if (${flag} STREQUAL REQUIRED)
 else()
 	set (logprio STATUS)
 endif()
+if (rfp_LIB_PATH_SUFFIX)
+	set(libPathSuffix ${rfp_LIB_PATH_SUFFIX})
+else()
+	set(libPathSuffix lib)
+endif()
 
+
+unset(rootDir CACHE)
 find_path(rootDir NAMES ${rfp_HEADER} HINTS ${rfp_HINTS})
 if (NOT rootDir)
 	if(NOT ${flag} EQUAL QUIETLY)
-		message(${logprio} "${name}: Could not find package root dir")
+		message(${logprio} "${name}: Could not find package root dir. NAMES ${rfp_HEADER}, HINTS ${rfp_HINTS}")
 	endif()
 	return()
 endif()
@@ -27,7 +36,7 @@ foreach (lib IN LISTS rfp_LIBS)
 		libPathName
 		NAMES ${lib}
 		HINTS ${rootDir}
-		PATH_SUFFIXES lib
+		PATH_SUFFIXES ${libPathSuffix}
 		NO_DEFAULT_PATH
 	)
 
@@ -35,7 +44,7 @@ foreach (lib IN LISTS rfp_LIBS)
 		set(ldflags "${ldflags} -l${lib}")
 	else()
 		if (NOT ${flag} EQUAL QUIETLY)
-		message(${logprio} "Not Found ${name}: ${lib}")
+		message(${logprio} "Not Found ${name}: ${lib}. HINTS ${rootDir} LIB_PATH_SUFFIX ${libPathSuffix}")
 		endif()
 		set(found false)
 	endif()
