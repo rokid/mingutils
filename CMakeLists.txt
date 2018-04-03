@@ -19,19 +19,22 @@ option(BUILD_DEBUG "debug or release" OFF)
 option(BUILD_DEMO "build demo" OFF)
 
 if (BUILD_DEBUG)
-	set (common_cflags -g -O0)
+	set (common_cflags "-g -O0")
+	set (common_cxxflags "-g -O0")
 else()
 	set (common_cflags -O3)
+	set (common_cxxflags -O3)
 	set (common_ldflags -s)
+	set (common_arflags -s)
 endif()
 if (NOT ${COMPILER_IS_CLANG})
 	set (common_ldflags "${common_ldflags} -pthread")
 endif()
-add_compile_options (${common_cflags})
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${common_cflags}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${common_cxxflags}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
 set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
-set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${common_ldflags}")
+set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${common_arflags}")
 
 # rlog src files
 file (GLOB_RECURSE rlog_src_files
@@ -55,16 +58,32 @@ install (TARGETS rlog
 install (DIRECTORY include/log
 	DESTINATION include)
 
+# target 'misc'
+set(misc_src_files
+	include/misc/clargs.h
+	src/misc/clargs.cc
+)
+add_library(misc STATIC
+	${misc_src_files}
+)
+target_include_directories(misc PRIVATE
+	include/misc
+)
+install(TARGETS misc
+	ARCHIVE DESTINATION lib
+)
+
+
+# build demo
 if (BUILD_DEMO)
-file (GLOB_RECURSE rlog_demo_src_files
-	demo/log/*.cc
-	demo/log/*.h
+set(clargs_demo_src_files
+	demo/misc/clargs_demo.c
 )
-add_executable (rlog_demo ${rlog_demo_src_files})
-target_include_directories (rlog_demo PRIVATE
-	include/log
+add_executable (clargs_demo ${clargs_demo_src_files})
+target_include_directories (clargs_demo PRIVATE
+	include/misc
 )
-target_link_libraries (rlog_demo
-	rlog
+target_link_libraries (clargs_demo
+	misc
 )
 endif(BUILD_DEMO)
