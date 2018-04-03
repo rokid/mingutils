@@ -443,6 +443,6 @@ void rokid_log_timestamp(char* buf, uint32_t bufsize) {
 	gettimeofday(&tv, NULL);
 	localtime_r(&tv.tv_sec, &ltm);
 	snprintf(buf, bufsize, "%04d-%02d-%02d %02d:%02d:%02d.%ld",
-			ltm.tm_year + 1900, ltm.tm_mon, ltm.tm_mday,
+			ltm.tm_year + 1900, ltm.tm_mon + 1, ltm.tm_mday,
 			ltm.tm_hour, ltm.tm_min, ltm.tm_sec, tv.tv_usec);
 }
