@@ -171,8 +171,10 @@ static int32_t std_log_writer(RokidLogLevel lv, const char* tag,
 		inst->buffer[sz] = '\n';
 		++sz;
 		int fd = (intptr_t)arg2;
-		if (fd > 0)
+		if (fd > 0) {
 			r = write(fd, inst->buffer, sz);
+			fsync(fd);
+		}
 	}
 	return r;
 }
