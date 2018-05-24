@@ -13,7 +13,7 @@ else()
 	set(COMPILER_IS_CLANG false)
 endif()
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.mk)
+include(${CUSTOM_CMAKE_MODULES}/common.mk)
 
 option(BUILD_DEBUG "debug or release" OFF)
 option(BUILD_DEMO "build demo" OFF)
@@ -59,15 +59,18 @@ install (DIRECTORY include/log
 	DESTINATION include)
 
 # target 'misc'
-set(misc_src_files
-	include/misc/clargs.h
-	src/misc/clargs.cc
+file(GLOB misc_src_files
+	include/misc/*.h
+	src/misc/*.cc
 )
 add_library(misc STATIC
 	${misc_src_files}
 )
 target_include_directories(misc PRIVATE
 	include/misc
+)
+target_compile_options(misc PRIVATE
+	-fPIC
 )
 install(TARGETS misc
 	ARCHIVE DESTINATION lib
