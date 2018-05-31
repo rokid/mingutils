@@ -89,4 +89,15 @@ target_include_directories (clargs_demo PRIVATE
 target_link_libraries (clargs_demo
 	misc
 )
+
+set(vq_demo_src_files
+	demo/misc/vq_demo.cc
+)
+add_executable (vq_demo ${vq_demo_src_files})
+target_include_directories (vq_demo PRIVATE
+	include/misc
+)
+target_link_libraries (vq_demo
+	misc
+)
 endif(BUILD_DEMO)
