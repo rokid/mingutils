@@ -10,6 +10,7 @@ Configuration:
     --debug                     build for debug
     --build-demo                build demo
     --build-dir=DIR             build directory
+    --prefix=PREFIX             install prefix
     --cmake-modules=DIR         directory of cmake modules file exist
 
 Cross Compile:
@@ -43,6 +44,9 @@ do
 		--build-dir=*)
 			builddir=$conf_optarg
 			;;
+		--prefix=*)
+			CMAKE_ARGS=(${CMAKE_ARGS[@]} -DCMAKE_INSTALL_PREFIX=$conf_optarg)
+			;;
 		--cmake-modules=*)
 			cmake_modules_dir=$conf_optarg
 			;;
@@ -56,7 +60,6 @@ do
 	esac
 done
 
-CMAKE_ARGS=(${CMAKE_ARGS[@]} -DCUSTOM_CMAKE_MODULES=$cmake_modules_dir)
 CUR_DIR=`pwd`
 if [ x$CROSS_COMPILE = x"yes" ]; then
 CMAKE_ARGS=(${CMAKE_ARGS[@]} -DCMAKE_TOOLCHAIN_FILE=$cmake_modules_dir/toolchain.cmake)

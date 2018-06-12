@@ -13,8 +13,6 @@ else()
 	set(COMPILER_IS_CLANG false)
 endif()
 
-include(${CUSTOM_CMAKE_MODULES}/common.mk)
-
 option(BUILD_DEBUG "debug or release" OFF)
 option(BUILD_DEMO "build demo" OFF)
 
@@ -75,6 +73,8 @@ target_compile_options(misc PRIVATE
 install(TARGETS misc
 	ARCHIVE DESTINATION lib
 )
+install(DIRECTORY include/misc
+	DESTINATION include)
 
 
 # build demo
