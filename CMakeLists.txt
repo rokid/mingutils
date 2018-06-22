@@ -44,17 +44,14 @@ file (GLOB_RECURSE rlog_src_files
 add_library (rlog SHARED
 	${rlog_src_files}
 )
-target_include_directories (rlog PRIVATE
+target_include_directories (rlog PUBLIC
 	include/log
 )
 target_link_libraries (rlog
 )
-
-install (TARGETS rlog
-	LIBRARY DESTINATION lib
-)
 install (DIRECTORY include/log
-	DESTINATION include)
+	DESTINATION include
+)
 
 # target 'misc'
 file(GLOB misc_src_files
@@ -64,28 +61,42 @@ file(GLOB misc_src_files
 add_library(misc STATIC
 	${misc_src_files}
 )
-target_include_directories(misc PRIVATE
+target_include_directories(misc PUBLIC
 	include/misc
 )
 target_compile_options(misc PRIVATE
 	-fPIC
 )
-install(TARGETS misc
+install(DIRECTORY include/misc
+	DESTINATION include
+)
+
+# target 'caps'
+file(GLOB caps_src_files
+	include/caps/*.h
+	src/caps/*.cc
+)
+add_library(caps SHARED
+	${caps_src_files}
+)
+target_include_directories(caps PUBLIC
+	include/caps
+)
+install(DIRECTORY include/caps
+	DESTINATION include
+)
+
+# install targets
+install (TARGETS rlog misc caps
+	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(DIRECTORY include/misc
-	DESTINATION include)
-
-
 # build demo
 if (BUILD_DEMO)
 set(clargs_demo_src_files
 	demo/misc/clargs_demo.c
 )
 add_executable (clargs_demo ${clargs_demo_src_files})
-target_include_directories (clargs_demo PRIVATE
-	include/misc
-)
 target_link_libraries (clargs_demo
 	misc
 )
@@ -94,10 +105,14 @@ set(vq_demo_src_files
 	demo/misc/vq_demo.cc
 )
 add_executable (vq_demo ${vq_demo_src_files})
-target_include_directories (vq_demo PRIVATE
-	include/misc
-)
 target_link_libraries (vq_demo
+	misc
+)
+
+file(GLOB caps_demo_src_files demo/caps/*.cc)
+add_executable (caps_demo ${caps_demo_src_files})
+target_link_libraries (caps_demo
+	caps
 	misc
 )
 endif(BUILD_DEMO)
