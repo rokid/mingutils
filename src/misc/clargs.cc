@@ -135,7 +135,7 @@ void clargs_inst::add_arg(const char* s, size_t l) {
 }
 
 clargs_h clargs_parse(int32_t argc, char** argv) {
-	if (argc <= 1 || argv == nullptr)
+	if (argc < 1 || argv == nullptr)
 		return 0;
 	clargs_inst* inst = new clargs_inst();
 	if (!inst->parse(argc - 1, argv + 1)) {
