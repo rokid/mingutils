@@ -150,7 +150,7 @@ CapsWriter::CapsWriter() {
 	members.reserve(8);
 }
 
-CapsWriter::~CapsWriter() {
+CapsWriter::~CapsWriter() noexcept {
 	uint32_t i;
 	for (i = 0; i < members.size(); ++i) {
 		delete members[i];
@@ -244,7 +244,7 @@ int32_t CapsWriter::serialize(void* buf, uint32_t bufsize) {
 	if (total_size > bufsize)
 		return total_size;
 
-	header->magic = MAGIC_NUM;
+	header->magic = MAGIC_NUM | VERSION_NUM;
 	header->length = total_size;
 	header->number_section = reinterpret_cast<int8_t*>(wp.ivalues) - reinterpret_cast<int8_t*>(buf);
 	header->long_section = reinterpret_cast<int8_t*>(wp.lvalues) - reinterpret_cast<int8_t*>(buf);

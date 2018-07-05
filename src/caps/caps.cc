@@ -30,7 +30,7 @@ int32_t caps_serialize(caps_t caps, void* buf, uint32_t bufsize) {
 	return static_cast<CapsWriter*>(writer)->serialize(buf, bufsize);
 }
 
-int32_t caps_add_integer(caps_t caps, int32_t v) {
+int32_t caps_write_integer(caps_t caps, int32_t v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
@@ -40,7 +40,7 @@ int32_t caps_add_integer(caps_t caps, int32_t v) {
 	return CAPS_SUCCESS;
 }
 
-int32_t caps_add_float(caps_t caps, float v) {
+int32_t caps_write_float(caps_t caps, float v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
@@ -50,7 +50,7 @@ int32_t caps_add_float(caps_t caps, float v) {
 	return CAPS_SUCCESS;
 }
 
-int32_t caps_add_long(caps_t caps, int64_t v) {
+int32_t caps_write_long(caps_t caps, int64_t v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
@@ -60,7 +60,7 @@ int32_t caps_add_long(caps_t caps, int64_t v) {
 	return CAPS_SUCCESS;
 }
 
-int32_t caps_add_double(caps_t caps, double v) {
+int32_t caps_write_double(caps_t caps, double v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
@@ -70,7 +70,7 @@ int32_t caps_add_double(caps_t caps, double v) {
 	return CAPS_SUCCESS;
 }
 
-int32_t caps_add_string(caps_t caps, const char* v) {
+int32_t caps_write_string(caps_t caps, const char* v) {
 	if (caps == 0 || v == nullptr)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
@@ -80,7 +80,7 @@ int32_t caps_add_string(caps_t caps, const char* v) {
 	return CAPS_SUCCESS;
 }
 
-int32_t caps_add_binary(caps_t caps, const void* v, uint32_t length) {
+int32_t caps_write_binary(caps_t caps, const void* v, uint32_t length) {
 	if (caps == 0 || v == nullptr || length == 0)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
@@ -90,7 +90,7 @@ int32_t caps_add_binary(caps_t caps, const void* v, uint32_t length) {
 	return CAPS_SUCCESS;
 }
 
-int32_t caps_add_object(caps_t caps, caps_t v) {
+int32_t caps_write_object(caps_t caps, caps_t v) {
 	if (caps == 0 || v == 0)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
@@ -166,4 +166,15 @@ int32_t caps_read_object(caps_t caps, caps_t* r) {
 void caps_destroy(caps_t caps) {
 	if (caps)
 		delete reinterpret_cast<Caps*>(caps);
+}
+
+int32_t caps_binary_info(const void* data, uint32_t* version, uint32_t* length) {
+	const uint32_t* h = reinterpret_cast<const uint32_t*>(data);
+	if ((h[0] & (~VERSION_MASK)) != MAGIC_NUM)
+		return CAPS_ERR_CORRUPTED;
+	if (version)
+		*version = h[0] & VERSION_MASK;
+	if (length)
+		*length = h[1];
+	return CAPS_SUCCESS;
 }

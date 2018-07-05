@@ -12,7 +12,7 @@ class CapsWriter : public Caps {
 public:
 	CapsWriter();
 
-	~CapsWriter();
+	~CapsWriter() noexcept;
 
 	void write(int32_t v);
 	void write(int64_t v);

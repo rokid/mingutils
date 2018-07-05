@@ -161,7 +161,7 @@ int32_t CapsReader::read(CapsReader*& r) {
 	return CAPS_SUCCESS;
 }
 
-CapsReader::~CapsReader() {
+CapsReader::~CapsReader() noexcept {
 	if (sub_objects)
 		delete[] sub_objects;
 }

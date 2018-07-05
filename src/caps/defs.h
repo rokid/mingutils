@@ -7,7 +7,8 @@
 
 #define ALIGN4(v) ((v) + 3 & ~3)
 #define ALIGN8(v) ((v) + 7 & ~7)
-#define MAGIC_NUM 0x7d1a8201
+#define MAGIC_NUM 0x7d1a8200
+#define VERSION_NUM 1
 #define VERSION_MASK 0xff
 
 namespace rokid {

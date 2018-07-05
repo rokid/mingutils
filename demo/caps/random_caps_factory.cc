@@ -34,7 +34,7 @@ void RandomCapsFactory::gen_integer() {
 	int v = rand();
 	integers.push_back(v);
 	member_types.push_back(MEMBER_TYPE_INTEGER);
-	caps_add_integer(this_caps, (int32_t)v);
+	caps_write_integer(this_caps, (int32_t)v);
 }
 
 void RandomCapsFactory::gen_float() {
@@ -43,7 +43,7 @@ void RandomCapsFactory::gen_float() {
 	float v = (float)rand() / (float)RAND_MAX;
 	floats.push_back(v);
 	member_types.push_back(MEMBER_TYPE_FLOAT);
-	caps_add_float(this_caps, v);
+	caps_write_float(this_caps, v);
 }
 
 void RandomCapsFactory::gen_long() {
@@ -52,7 +52,7 @@ void RandomCapsFactory::gen_long() {
 	int64_t v = rand();
 	longs.push_back(v);
 	member_types.push_back(MEMBER_TYPE_LONG);
-	caps_add_long(this_caps, v);
+	caps_write_long(this_caps, v);
 }
 
 void RandomCapsFactory::gen_double() {
@@ -61,7 +61,7 @@ void RandomCapsFactory::gen_double() {
 	double v = (double)rand() / (double)RAND_MAX;
 	doubles.push_back(v);
 	member_types.push_back(MEMBER_TYPE_DOUBLE);
-	caps_add_double(this_caps, v);
+	caps_write_double(this_caps, v);
 }
 
 static char random_visible_char() {
@@ -81,7 +81,7 @@ void RandomCapsFactory::gen_string() {
 		(*it)[i] = random_visible_char();
 	}
 	member_types.push_back(MEMBER_TYPE_STRING);
-	caps_add_string(this_caps, (*it).c_str());
+	caps_write_string(this_caps, (*it).c_str());
 }
 
 static uint8_t random_byte() {
@@ -101,7 +101,7 @@ void RandomCapsFactory::gen_binary() {
 		(*it)[i] = random_byte();
 	}
 	member_types.push_back(MEMBER_TYPE_BINARY);
-	caps_add_binary(this_caps, (*it).data(), len);
+	caps_write_binary(this_caps, (*it).data(), len);
 }
 
 void RandomCapsFactory::gen_object(uint32_t enable_sub_object) {
@@ -113,7 +113,7 @@ void RandomCapsFactory::gen_object(uint32_t enable_sub_object) {
 	for (i = 0; i < sub_member_size; ++i) {
 		sub->gen_random_member(enable_sub_object);
 	}
-	caps_add_object(this_caps, sub->caps());
+	caps_write_object(this_caps, sub->caps());
 	member_types.push_back(MEMBER_TYPE_OBJECT);
 	sub_objects.push_back(sub);
 }

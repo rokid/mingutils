@@ -7,7 +7,7 @@ namespace rokid {
 
 class CapsReader : public Caps {
 public:
-	~CapsReader();
+	~CapsReader() noexcept;
 
 	int32_t parse(const void* data, uint32_t datasize);
 
