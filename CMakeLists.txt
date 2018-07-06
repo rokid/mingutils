@@ -109,6 +109,14 @@ target_link_libraries (vq_demo
 	misc
 )
 
+set(uri_demo_src_files
+	demo/misc/uri_demo.cc
+)
+add_executable (uri_demo ${uri_demo_src_files})
+target_link_libraries (uri_demo
+	misc
+)
+
 file(GLOB caps_demo_src_files demo/caps/*.cc)
 add_executable (caps_demo ${caps_demo_src_files})
 target_link_libraries (caps_demo
