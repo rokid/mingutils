@@ -23,7 +23,6 @@ else()
 	set (common_cflags -O3)
 	set (common_cxxflags -O3)
 	set (common_ldflags -s)
-	set (common_arflags -s)
 endif()
 if (NOT ${COMPILER_IS_CLANG})
 	set (common_ldflags "${common_ldflags} -pthread")
@@ -32,7 +31,6 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${common_cflags}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${common_cxxflags}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
 set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
-set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${common_arflags}")
 
 # rlog src files
 file (GLOB_RECURSE rlog_src_files

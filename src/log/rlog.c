@@ -11,6 +11,12 @@
 #include <android/log.h>
 #endif
 
+#ifdef __APPLE__
+#define PRIusec "%d"
+#else
+#define PRIusec "%ld"
+#endif
+
 typedef struct ListItem {
 	struct ListItem* next;
 	struct ListItem* prev;
@@ -444,7 +450,7 @@ void rokid_log_timestamp(char* buf, uint32_t bufsize) {
 		return;
 	gettimeofday(&tv, NULL);
 	localtime_r(&tv.tv_sec, &ltm);
-	snprintf(buf, bufsize, "%04d-%02d-%02d %02d:%02d:%02d.%ld",
+	snprintf(buf, bufsize, "%04d-%02d-%02d %02d:%02d:%02d." PRIusec,
 			ltm.tm_year + 1900, ltm.tm_mon + 1, ltm.tm_mday,
 			ltm.tm_hour, ltm.tm_min, ltm.tm_sec, tv.tv_usec);
 }
