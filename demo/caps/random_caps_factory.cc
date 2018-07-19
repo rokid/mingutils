@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #include "random_caps_factory.h"
 #include "demo_defs.h"
 
