@@ -10,20 +10,26 @@ using std::chrono::steady_clock;
 using std::chrono::duration_cast;
 using std::chrono::nanoseconds;
 
-static bool test1();
-static bool test2();
-static bool test3();
-static bool test4();
-static bool test5();
-static bool test6();
-static bool test_random(int32_t depth);
+static int32_t test1(bool c);
+static int32_t test2(bool c);
+static int32_t test3(bool c);
+static int32_t test4(bool c);
+static int32_t test5(bool c);
+static int32_t test6(bool c);
+static int32_t test_random(int32_t depth, bool c);
+
+static const char* err_msgs[] = {
+	"parse(not duplicated)",
+	"parse(duplicated)"
+};
 
 static void print_prompt(const char* progname) {
 	static const char* form = "caps随机数据序列化反序列化测试\n\n"
 		"USAGE: %s [options]\n"
 		"options:\n"
 		"\t--help        打印此帮助信息\n"
-		"\t--repeat=*    测试重复次数\n";
+		"\t--repeat=*    测试重复次数\n"
+		"\t--use-c-api   使用c接口";
 	printf(form, progname);
 }
 
@@ -32,6 +38,7 @@ int main(int argc, char** argv) {
 	clargs_h h = clargs_parse(argc, argv);
 	if (h == 0 || clargs_opt_has(h, "help")) {
 		print_prompt(argv[0]);
+		clargs_destroy(h);
 		return 1;
 	}
 	const char* v = clargs_opt_get(h, "repeat");
@@ -42,6 +49,8 @@ int main(int argc, char** argv) {
 		if (repeat <= 0)
 			repeat = 1;
 	}
+	bool use_c_api = clargs_opt_has(h, "use-c-api");
+	clargs_destroy(h);
 
 	// rand init
 	steady_clock::time_point tp = steady_clock::now();
@@ -49,42 +58,52 @@ int main(int argc, char** argv) {
 	srand(s);
 
 	// random test loop
-	printf("press enter start test, repeat %d times\n", repeat);
+	printf("press enter start test, repeat %d times, %s\n", repeat,
+			use_c_api ? "c api" : "c++ api");
 	getchar();
 	int32_t i;
+	int32_t r;
 	for (i = 0; i < repeat; ++i) {
-		if (!test1()) {
+		r = test1(use_c_api);
+		if (r != 0) {
 			printf("test add integers failed\n");
+			printf("in step %s\n", err_msgs[r - 1]);
 			return 1;
 		}
-
-		if (!test2()) {
+		r = test2(use_c_api);
+		if (r != 0) {
 			printf("test add float failed\n");
+			printf("in step %s\n", err_msgs[r - 1]);
 			return 1;
 		}
-
-		if (!test3()) {
+		r = test3(use_c_api);
+		if (r != 0) {
 			printf("test add long failed\n");
+			printf("in step %s\n", err_msgs[r - 1]);
 			return 1;
 		}
-
-		if (!test4()) {
+		r = test4(use_c_api);
+		if (r != 0) {
 			printf("test add double failed\n");
+			printf("in step %s\n", err_msgs[r - 1]);
 			return 1;
 		}
-
-		if (!test5()) {
+		r = test5(use_c_api);
+		if (r != 0) {
 			printf("test add string failed\n");
+			printf("in step %s\n", err_msgs[r - 1]);
 			return 1;
 		}
-
-		if (!test6()) {
+		r = test6(use_c_api);
+		if (r != 0) {
 			printf("test add binary failed\n");
+			printf("in step %s\n", err_msgs[r - 1]);
 			return 1;
 		}
-
-		if (!test_random(2)) {
+		r = test_random(2, use_c_api);
+		if (r != 0) {
 			printf("test random caps failed\n");
+			printf("in step %s\n", err_msgs[r - 1]);
 			return 1;
 		}
 	}
@@ -93,8 +112,8 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-static bool test1() {
-	RandomCapsFactory fac;
+static int32_t test1(bool c) {
+	RandomCapsFactory fac(c);
 	int32_t i;
 	for (i = 0; i < MAX_MEMBERS; ++i) {
 		fac.gen_integer();
@@ -102,8 +121,8 @@ static bool test1() {
 	return fac.check();
 }
 
-static bool test2() {
-	RandomCapsFactory fac;
+static int32_t test2(bool c) {
+	RandomCapsFactory fac(c);
 	int32_t i;
 	for (i = 0; i < MAX_MEMBERS; ++i) {
 		fac.gen_float();
@@ -111,8 +130,8 @@ static bool test2() {
 	return fac.check();
 }
 
-static bool test3() {
-	RandomCapsFactory fac;
+static int32_t test3(bool c) {
+	RandomCapsFactory fac(c);
 	int32_t i;
 	for (i = 0; i < MAX_MEMBERS; ++i) {
 		fac.gen_long();
@@ -120,8 +139,8 @@ static bool test3() {
 	return fac.check();
 }
 
-static bool test4() {
-	RandomCapsFactory fac;
+static int32_t test4(bool c) {
+	RandomCapsFactory fac(c);
 	int32_t i;
 	for (i = 0; i < MAX_MEMBERS; ++i) {
 		fac.gen_double();
@@ -129,8 +148,8 @@ static bool test4() {
 	return fac.check();
 }
 
-static bool test5() {
-	RandomCapsFactory fac;
+static int32_t test5(bool c) {
+	RandomCapsFactory fac(c);
 	int32_t i;
 	for (i = 0; i < MAX_MEMBERS; ++i) {
 		fac.gen_string();
@@ -138,8 +157,8 @@ static bool test5() {
 	return fac.check();
 }
 
-static bool test6() {
-	RandomCapsFactory fac;
+static int32_t test6(bool c) {
+	RandomCapsFactory fac(c);
 	int32_t i;
 	for (i = 0; i < MAX_MEMBERS; ++i) {
 		fac.gen_binary();
@@ -147,8 +166,8 @@ static bool test6() {
 	return fac.check();
 }
 
-static bool test_random(int32_t depth) {
-	RandomCapsFactory fac;
+static int32_t test_random(int32_t depth, bool c) {
+	RandomCapsFactory fac(c);
 	fac.gen_object(depth);
 	return fac.check();
 }

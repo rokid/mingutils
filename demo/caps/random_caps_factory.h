@@ -6,7 +6,7 @@
 
 class RandomCapsFactory {
 public:
-	RandomCapsFactory();
+	RandomCapsFactory(bool capi);
 
 	~RandomCapsFactory();
 
@@ -18,13 +18,23 @@ public:
 	void gen_binary();
 	void gen_object(uint32_t enable_sub_object);
 
-	inline caps_t caps() const { return this_caps; }
+	inline caps_t caps() const { return c_this_caps; }
+
+	inline std::shared_ptr<Caps>& caps_ptr() { return this_caps; }
 
 	// 进行序列化反序列化测试并检查结果
-	bool check();
+	int32_t check();
+
+	bool c_check(caps_t caps);
+
+	bool cpp_check(std::shared_ptr<Caps>& caps);
 
 private:
 	void gen_random_member(uint32_t enable_sub_object);
+
+	int32_t c_check();
+
+	int32_t cpp_check();
 
 private:
 	std::vector<uint8_t> member_types;
@@ -35,5 +45,7 @@ private:
 	std::vector<std::string> strings;
 	std::vector<std::string> binarys;
 	std::vector<RandomCapsFactory*> sub_objects;
-	caps_t this_caps;
+	std::shared_ptr<Caps> this_caps;
+	caps_t c_this_caps = 0;
+	bool use_c_api = false;
 };

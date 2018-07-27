@@ -14,6 +14,51 @@
 #define CAPS_ERR_INCORRECT_TYPE -6  // read类型不匹配
 #define CAPS_ERR_EOO -7  // 没有更多的成员变量了，read结束(End of Object)
 
+#define CAPS_TYPE_WRITER 0
+#define CAPS_TYPE_READER 1
+
+#ifdef __cplusplus
+#include <memory>
+#include <string>
+
+class Caps {
+public:
+	virtual ~Caps() = default;
+
+	virtual int32_t write(int32_t v) = 0;
+	virtual int32_t write(float v) = 0;
+	virtual int32_t write(int64_t v) = 0;
+	virtual int32_t write(double v) = 0;
+	virtual int32_t write(const char* v) = 0;
+	virtual int32_t write(const void* v, uint32_t len) = 0;
+	virtual int32_t write(std::shared_ptr<Caps>& v) = 0;
+	virtual int32_t serialize(void* buf, uint32_t size) const = 0;
+
+	virtual int32_t read(int32_t& v) = 0;
+	virtual int32_t read(float& v) = 0;
+	virtual int32_t read(int64_t& v) = 0;
+	virtual int32_t read(double& v) = 0;
+	virtual int32_t read_string(std::string& r) = 0;
+	virtual int32_t read_binary(std::string& r) = 0;
+	virtual int32_t read(std::shared_ptr<Caps>& v) = 0;
+
+	virtual int32_t type() const = 0;
+	virtual uint32_t binary_size() const = 0;
+
+	// create WRONLY Caps
+	static std::shared_ptr<Caps> new_instance();
+
+	// create RDONLY Caps
+	static int32_t parse(const void* data, uint32_t length,
+			std::shared_ptr<Caps>& caps, bool duplicate = true);
+
+	// 同c api: caps_binary_info
+	static int32_t binary_info(const void* data, uint32_t* version, uint32_t* length);
+};
+
+extern "C" {
+#endif
+
 typedef intptr_t caps_t;
 
 // create创建的caps_t对象可写，不可读
@@ -59,5 +104,9 @@ void caps_destroy(caps_t caps);
 // 'data' 必须不少于8字节
 // 根据8字节信息，得到整个二进制数据长度及caps版本
 int32_t caps_binary_info(const void* data, uint32_t* version, uint32_t* length);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // ROKID_MUTILS_CAPS_H

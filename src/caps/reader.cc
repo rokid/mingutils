@@ -1,10 +1,39 @@
 #include <string.h>
+#include "writer.h"
 #include "reader.h"
-#include "caps.h"
+
+using namespace std;
 
 namespace rokid {
 
-int32_t CapsReader::parse(const void* data, uint32_t datasize) {
+static void copy_from_reader(CapsReader* dst, const CapsReader* src) {
+	const void* data = src->binary_data();
+	uint32_t size = src->binary_size();
+	if (data != nullptr && size > 0) {
+		dst->parse(data, size, true);
+	}
+}
+
+static void copy_from_writer(CapsReader* dst, const CapsWriter* src) {
+	uint32_t size = src->binary_size();
+	if (size > 0) {
+		int8_t* data = new int8_t[size];
+		if (src->serialize(data, size) > 0) {
+			dst->parse(data, size, true);
+		}
+		delete[] data;
+	}
+}
+
+CapsReader& CapsReader::operator = (const Caps& o) {
+	if (o.type() == CAPS_TYPE_WRITER)
+		copy_from_writer(this, static_cast<const CapsWriter*>(&o));
+	else
+		copy_from_reader(this, static_cast<const CapsReader*>(&o));
+	return *this;
+}
+
+int32_t CapsReader::parse(const void* data, uint32_t datasize, bool dup) {
 	uint8_t num_str = 0;
 	uint8_t num_bin = 0;
 	uint8_t num_obj = 0;
@@ -12,10 +41,22 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize) {
 	uint8_t num_long = 0;
 	uint8_t i;
 	uint8_t num_members;
+	const int8_t* b;
 
 	if (datasize < sizeof(Header))
 		return CAPS_ERR_INVAL;
-	header = reinterpret_cast<const Header*>(data);
+	if (dup) {
+		bin_data = new int8_t[datasize];
+		memcpy(const_cast<int8_t*>(bin_data), data, datasize);
+		duplicated = 1;
+		b = reinterpret_cast<const int8_t*>(bin_data);
+	} else {
+		duplicated = 0;
+		b = reinterpret_cast<const int8_t*>(data);
+		bin_data = b;
+	}
+
+	header = reinterpret_cast<const Header*>(b);
 	if (header->length != datasize)
 		return CAPS_ERR_CORRUPTED;
 	if ((header->magic & (~VERSION_MASK)) != (MAGIC_NUM & (~VERSION_MASK)))
@@ -23,7 +64,6 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize) {
 	if ((header->magic & VERSION_MASK) > CAPS_VERSION)
 		return CAPS_ERR_VERSION_UNSUPP;
 
-	const int8_t* b = reinterpret_cast<const int8_t*>(data);
 	member_declarations = reinterpret_cast<const int8_t*>(header + 1);
 	// first element is number of members
 	++member_declarations;
@@ -67,10 +107,6 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize) {
 	// TODO: check member offsets valid
 	//       check StringInfo offsets valid
 	//       check BinaryInfo offsets valid
-
-	sub_objects = new CapsReader[num_obj];
-	current_sub_object = sub_objects;
-	bin_data = b;
 	return CAPS_SUCCESS;
 }
 
@@ -122,6 +158,18 @@ int32_t CapsReader::read(double& r) {
 	return CAPS_SUCCESS;
 }
 
+int32_t CapsReader::read(const char*& r) {
+	if (current_read_member >= member_declarations[-1])
+		return CAPS_ERR_EOO;
+	if (member_declarations[current_read_member] != 'S')
+		return CAPS_ERR_INCORRECT_TYPE;
+	const StringInfo* info = string_infos;
+	r = reinterpret_cast<const char*>(bin_data + info->offset);
+	++string_infos;
+	++current_read_member;
+	return CAPS_SUCCESS;
+}
+
 int32_t CapsReader::read(const void*& r, uint32_t& length) {
 	if (current_read_member >= member_declarations[-1])
 		return CAPS_ERR_EOO;
@@ -135,35 +183,47 @@ int32_t CapsReader::read(const void*& r, uint32_t& length) {
 	return CAPS_SUCCESS;
 }
 
-int32_t CapsReader::read(const char*& r) {
-	if (current_read_member >= member_declarations[-1])
-		return CAPS_ERR_EOO;
-	if (member_declarations[current_read_member] != 'S')
-		return CAPS_ERR_INCORRECT_TYPE;
-	const StringInfo* info = string_infos;
-	r = reinterpret_cast<const char*>(bin_data + info->offset);
-	++string_infos;
-	++current_read_member;
+int32_t CapsReader::read_string(string& r) {
+	const char* s;
+	int32_t code = read(s);
+	if (code != CAPS_SUCCESS)
+		return code;
+	r = s;
 	return CAPS_SUCCESS;
 }
 
-int32_t CapsReader::read(CapsReader*& r) {
+int32_t CapsReader::read_binary(string& r) {
+	const void* b;
+	uint32_t l;
+	int32_t code = read(b, l);
+	if (code != CAPS_SUCCESS)
+		return code;
+	r.assign((const char*)b, l);
+	return CAPS_SUCCESS;
+}
+
+int32_t CapsReader::read(shared_ptr<Caps>& r) {
 	if (current_read_member >= member_declarations[-1])
 		return CAPS_ERR_EOO;
 	if (member_declarations[current_read_member] != 'O')
 		return CAPS_ERR_INCORRECT_TYPE;
 	const BinaryInfo* info = binary_infos;
-	current_sub_object->parse(bin_data + info->offset, info->len);
-	r = current_sub_object;
-	++current_sub_object;
+	shared_ptr<CapsReader> sub;
+	int32_t code = CAPS_SUCCESS;
+	
+	if (info->len) {
+		sub = make_shared<CapsReader>();
+		code = sub->parse(bin_data + info->offset, info->len, true);
+	}
 	++binary_infos;
 	++current_read_member;
-	return CAPS_SUCCESS;
+	r = static_pointer_cast<Caps>(sub);
+	return code;
 }
 
 CapsReader::~CapsReader() noexcept {
-	if (sub_objects)
-		delete[] sub_objects;
+	if (duplicated)
+		delete[] bin_data;
 }
 
 } // namespace rokid

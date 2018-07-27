@@ -2,9 +2,6 @@
 
 #include <stdint.h>
 
-#define CAPS_TYPE_WRITER 0
-#define CAPS_TYPE_READER 1
-
 #define ALIGN4(v) ((v) + 3 & ~3)
 #define ALIGN8(v) ((v) + 7 & ~7)
 #define MAGIC_NUM 0x7d1a8200
@@ -13,9 +10,9 @@
 
 namespace rokid {
 
-class Caps {
+class CapsBase {
 public:
-	virtual ~Caps() = default;
+	virtual ~CapsBase() = default;
 
 	virtual int32_t type() const = 0;
 

@@ -17,12 +17,17 @@
 
 using namespace std;
 
-RandomCapsFactory::RandomCapsFactory() {
-	this_caps = caps_create();
+RandomCapsFactory::RandomCapsFactory(bool capi) {
+	if (capi)
+		c_this_caps = caps_create();
+	else
+		this_caps = Caps::new_instance();
+	use_c_api = capi;
 }
 
 RandomCapsFactory::~RandomCapsFactory() {
-	caps_destroy(this_caps);
+	if (use_c_api)
+		caps_destroy(c_this_caps);
 	size_t i;
 	for (i = 0; i < sub_objects.size(); ++i) {
 		delete sub_objects[i];
@@ -35,7 +40,10 @@ void RandomCapsFactory::gen_integer() {
 	int v = rand();
 	integers.push_back(v);
 	member_types.push_back(MEMBER_TYPE_INTEGER);
-	caps_write_integer(this_caps, (int32_t)v);
+	if (use_c_api)
+		caps_write_integer(c_this_caps, (int32_t)v);
+	else
+		this_caps->write((int32_t)v);
 }
 
 void RandomCapsFactory::gen_float() {
@@ -44,7 +52,10 @@ void RandomCapsFactory::gen_float() {
 	float v = (float)rand() / (float)RAND_MAX;
 	floats.push_back(v);
 	member_types.push_back(MEMBER_TYPE_FLOAT);
-	caps_write_float(this_caps, v);
+	if (use_c_api)
+		caps_write_float(c_this_caps, v);
+	else
+		this_caps->write(v);
 }
 
 void RandomCapsFactory::gen_long() {
@@ -53,7 +64,10 @@ void RandomCapsFactory::gen_long() {
 	int64_t v = rand();
 	longs.push_back(v);
 	member_types.push_back(MEMBER_TYPE_LONG);
-	caps_write_long(this_caps, v);
+	if (use_c_api)
+		caps_write_long(c_this_caps, v);
+	else
+		this_caps->write(v);
 }
 
 void RandomCapsFactory::gen_double() {
@@ -62,7 +76,10 @@ void RandomCapsFactory::gen_double() {
 	double v = (double)rand() / (double)RAND_MAX;
 	doubles.push_back(v);
 	member_types.push_back(MEMBER_TYPE_DOUBLE);
-	caps_write_double(this_caps, v);
+	if (use_c_api)
+		caps_write_double(c_this_caps, v);
+	else
+		this_caps->write(v);
 }
 
 static char random_visible_char() {
@@ -82,7 +99,10 @@ void RandomCapsFactory::gen_string() {
 		(*it)[i] = random_visible_char();
 	}
 	member_types.push_back(MEMBER_TYPE_STRING);
-	caps_write_string(this_caps, (*it).c_str());
+	if (use_c_api)
+		caps_write_string(c_this_caps, (*it).c_str());
+	else
+		this_caps->write((*it).c_str());
 }
 
 static uint8_t random_byte() {
@@ -102,7 +122,10 @@ void RandomCapsFactory::gen_binary() {
 		(*it)[i] = random_byte();
 	}
 	member_types.push_back(MEMBER_TYPE_BINARY);
-	caps_write_binary(this_caps, (*it).data(), len);
+	if (use_c_api)
+		caps_write_binary(c_this_caps, (*it).data(), len);
+	else
+		this_caps->write((*it).data(), len);
 }
 
 void RandomCapsFactory::gen_object(uint32_t enable_sub_object) {
@@ -110,11 +133,14 @@ void RandomCapsFactory::gen_object(uint32_t enable_sub_object) {
 		return;
 	int32_t sub_member_size = rand() % MAX_MEMBERS;
 	int32_t i;
-	RandomCapsFactory* sub = new RandomCapsFactory();
+	RandomCapsFactory* sub = new RandomCapsFactory(use_c_api);
 	for (i = 0; i < sub_member_size; ++i) {
 		sub->gen_random_member(enable_sub_object);
 	}
-	caps_write_object(this_caps, sub->caps());
+	if (use_c_api)
+		caps_write_object(c_this_caps, sub->caps());
+	else
+		this_caps->write(sub->caps_ptr());
 	member_types.push_back(MEMBER_TYPE_OBJECT);
 	sub_objects.push_back(sub);
 }
@@ -148,19 +174,35 @@ void RandomCapsFactory::gen_random_member(uint32_t enable_sub_object) {
 	}
 }
 
-bool RandomCapsFactory::check() {
-	int32_t size = caps_serialize(this_caps, nullptr, 0);
+int32_t RandomCapsFactory::check() {
+	int32_t r;
+	if (use_c_api)
+		r = c_check();
+	else
+		r = cpp_check();
+	return r;
+}
+
+int32_t RandomCapsFactory::c_check() {
+	int32_t size = caps_serialize(c_this_caps, nullptr, 0);
 	int8_t* buf = new int8_t[size];
 	caps_t rcaps;
 	int32_t i;
-	int32_t r = CAPS_SUCCESS;
+	bool b;
 
-	caps_serialize(this_caps, buf, size);
+	// check: serialize, parse
+	caps_serialize(c_this_caps, buf, size);
 	if (caps_parse(buf, size, &rcaps) != CAPS_SUCCESS) {
 		delete[] buf;
-		return false;
+		return 1;
 	}
+	b = c_check(rcaps);
+	caps_destroy(rcaps);
+	delete[] buf;
+	return b ? 0 : 1;
+}
 
+bool RandomCapsFactory::c_check(caps_t caps) {
 	int32_t ci = 0;
 	int32_t cl = 0;
 	int32_t cf = 0;
@@ -176,57 +218,167 @@ bool RandomCapsFactory::check() {
 	const void* Bv;
 	uint32_t Blen;
 	caps_t Ov;
+	int32_t i;
+	int32_t r = CAPS_SUCCESS;
+
 	for (i = 0; i < member_types.size(); ++i) {
 		r = CAPS_SUCCESS;
 		switch (member_types[i]) {
 			case MEMBER_TYPE_INTEGER:
-				r = caps_read_integer(rcaps, &iv);
-				if (r == CAPS_SUCCESS) {
-					if (iv != integers[ci++])
-						r = -10000;
+				r = caps_read_integer(caps, &iv);
+				if (r != CAPS_SUCCESS || iv != integers[ci++]) {
+					r = -10000;
 				}
 				break;
 			case MEMBER_TYPE_FLOAT:
-				r = caps_read_float(rcaps, &fv);
-				if (r == CAPS_SUCCESS) {
-					if (fv != floats[cf++])
-						r = -10001;
+				r = caps_read_float(caps, &fv);
+				if (r != CAPS_SUCCESS || fv != floats[cf++]) {
+					r = -10001;
 				}
 				break;
 			case MEMBER_TYPE_LONG:
-				r = caps_read_long(rcaps, &lv);
-				if (r == CAPS_SUCCESS) {
-					if (lv != longs[cl++])
-						r = -10002;
+				r = caps_read_long(caps, &lv);
+				if (r != CAPS_SUCCESS || lv != longs[cl++]) {
+					r = -10002;
 				}
 				break;
 			case MEMBER_TYPE_DOUBLE:
-				r = caps_read_double(rcaps, &dv);
-				if (r == CAPS_SUCCESS) {
-					if (dv != doubles[cd++])
-						r = -10003;
+				r = caps_read_double(caps, &dv);
+				if (r != CAPS_SUCCESS || dv != doubles[cd++]) {
+					r = -10003;
 				}
 				break;
 			case MEMBER_TYPE_STRING:
-				r = caps_read_string(rcaps, &Sv);
-				if (r == CAPS_SUCCESS) {
-					if (strcmp(Sv, strings[cS++].c_str()))
-						r = -10004;
+				r = caps_read_string(caps, &Sv);
+				if (r != CAPS_SUCCESS || strcmp(Sv, strings[cS++].c_str())) {
+					r = -10004;
 				}
 				break;
 			case MEMBER_TYPE_BINARY:
-				r = caps_read_binary(rcaps, &Bv, &Blen);
-				if (r == CAPS_SUCCESS) {
-					if (memcmp(Bv, binarys[cB].data(), binarys[cB].length()))
-						r = -10005;
-					++cB;
+				r = caps_read_binary(caps, &Bv, &Blen);
+				if (r != CAPS_SUCCESS) {
+					r = -10005;
+					break;
+				}
+				if (Blen != binarys[cB].length()
+						|| memcmp(Bv, binarys[cB].data(), Blen)) {
+					r = -10005;
+				}
+				++cB;
+				break;
+			case MEMBER_TYPE_OBJECT:
+				r = caps_read_object(caps, &Ov);
+				if (r != CAPS_SUCCESS) {
+						r = -10006;
+						break;
+				}
+				RandomCapsFactory* t = sub_objects[cO++];
+				if (!t->c_check(Ov)) {
+						r = -10006;
+				}
+				caps_destroy(Ov);
+				break;
+		}
+		if (r != CAPS_SUCCESS) {
+			printf("check failed, error = %d\n", r);
+			break;
+		}
+	}
+	return r == CAPS_SUCCESS;
+}
+
+int32_t RandomCapsFactory::cpp_check() {
+	int32_t size = this_caps->serialize(nullptr, 0);
+	int8_t* buf = new int8_t[size];
+	shared_ptr<Caps> rcaps;
+	int32_t i;
+	bool b;
+
+	// check: serialize, parse
+	this_caps->serialize(buf, size);
+	if (Caps::parse(buf, size, rcaps, false) != CAPS_SUCCESS) {
+		delete[] buf;
+		return 1;
+	}
+	b = cpp_check(rcaps);
+	if (!b) {
+		delete[] buf;
+		return 1;
+	}
+
+	i = Caps::parse(buf, size, rcaps);
+	delete[] buf;
+	if (i != CAPS_SUCCESS)
+		return 2;
+	b = cpp_check(rcaps);
+	return b ? 0 : 1;
+}
+
+bool RandomCapsFactory::cpp_check(shared_ptr<Caps>& caps) {
+	int32_t ci = 0;
+	int32_t cl = 0;
+	int32_t cf = 0;
+	int32_t cd = 0;
+	int32_t cS = 0;
+	int32_t cB = 0;
+	int32_t cO = 0;
+	int32_t iv;
+	float fv;
+	int64_t lv;
+	double dv;
+	string Sv;
+	string Bv;
+	shared_ptr<Caps> Ov;
+	int32_t i;
+	int32_t r = CAPS_SUCCESS;
+
+	for (i = 0; i < member_types.size(); ++i) {
+		r = CAPS_SUCCESS;
+		switch (member_types[i]) {
+			case MEMBER_TYPE_INTEGER:
+				r = caps->read(iv);
+				if (r != CAPS_SUCCESS || iv != integers[ci++]) {
+					r = -10000;
+				}
+				break;
+			case MEMBER_TYPE_FLOAT:
+				r = caps->read(fv);
+				if (r != CAPS_SUCCESS || fv != floats[cf++]) {
+					r = -10001;
+				}
+				break;
+			case MEMBER_TYPE_LONG:
+				r = caps->read(lv);
+				if (r != CAPS_SUCCESS || lv != longs[cl++]) {
+					r = -10002;
+				}
+				break;
+			case MEMBER_TYPE_DOUBLE:
+				r = caps->read(dv);
+				if (r != CAPS_SUCCESS || dv != doubles[cd++]) {
+					r = -10003;
+				}
+				break;
+			case MEMBER_TYPE_STRING:
+				r = caps->read_string(Sv);
+				if (r != CAPS_SUCCESS || Sv != strings[cS++]) {
+					r = -10004;
+				}
+				break;
+			case MEMBER_TYPE_BINARY:
+				r = caps->read_binary(Bv);
+				if (r != CAPS_SUCCESS || Bv != binarys[cB++]) {
+					r = -10005;
 				}
 				break;
 			case MEMBER_TYPE_OBJECT:
-				r = caps_read_object(rcaps, &Ov);
-				if (r == CAPS_SUCCESS) {
-					RandomCapsFactory* t = sub_objects[cO++];
-					if (!t->check())
+				r = caps->read(Ov);
+				if (r != CAPS_SUCCESS) {
+						r = -10006;
+						break;
+				}
+				RandomCapsFactory* t = sub_objects[cO++];
+				if (!t->cpp_check(Ov)) {
 						r = -10006;
 				}
 				break;
@@ -236,7 +388,5 @@ bool RandomCapsFactory::check() {
 			break;
 		}
 	}
-	delete[] buf;
-	caps_destroy(rcaps);
 	return r == CAPS_SUCCESS;
 }

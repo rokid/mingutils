@@ -1,8 +1,40 @@
+#include <string>
 #include "caps.h"
 #include "reader.h"
 #include "writer.h"
 
+using namespace std;
 using namespace rokid;
+
+shared_ptr<Caps> Caps::new_instance() {
+	return make_shared<CapsWriter>();
+}
+
+int32_t Caps::parse(const void* data, uint32_t length,
+		shared_ptr<Caps>& caps, bool duplicate) {
+	if (data == nullptr || length == 0)
+		return CAPS_ERR_INVAL;
+	shared_ptr<CapsReader> r = make_shared<CapsReader>();
+	int32_t code = r->parse(data, length, duplicate);
+	if (code != CAPS_SUCCESS)
+		return code;
+	caps = static_pointer_cast<Caps>(r);
+	return CAPS_SUCCESS;
+}
+
+int32_t Caps::binary_info(const void* data, uint32_t* version,
+		uint32_t* length) {
+	if (data == nullptr)
+		return CAPS_ERR_INVAL;
+	const uint32_t* h = reinterpret_cast<const uint32_t*>(data);
+	if ((h[0] & (~VERSION_MASK)) != MAGIC_NUM)
+		return CAPS_ERR_CORRUPTED;
+	if (version)
+		*version = h[0] & VERSION_MASK;
+	if (length)
+		*length = h[1];
+	return CAPS_SUCCESS;
+}
 
 caps_t caps_create() {
 	return reinterpret_cast<caps_t>(new CapsWriter());
@@ -12,7 +44,7 @@ int32_t caps_parse(const void* data, uint32_t length, caps_t* result) {
 	if (data == nullptr || length == 0 || result == nullptr)
 		return CAPS_ERR_INVAL;
 	CapsReader* reader = new CapsReader();
-	int32_t r = reader->parse(data, length);
+	int32_t r = reader->parse(data, length, true);
 	if (r != CAPS_SUCCESS)
 		return r;
 	*result = reinterpret_cast<caps_t>(reader);
@@ -25,115 +57,98 @@ int32_t caps_serialize(caps_t caps, void* buf, uint32_t bufsize) {
 	Caps* writer = reinterpret_cast<Caps*>(caps);
 	if (writer->type() != CAPS_TYPE_WRITER)
 		return CAPS_ERR_RDONLY;
-	if (buf == nullptr || bufsize == 0)
-		return writer->binary_size();
 	return static_cast<CapsWriter*>(writer)->serialize(buf, bufsize);
 }
 
 int32_t caps_write_integer(caps_t caps, int32_t v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
-	Caps* writer = reinterpret_cast<Caps*>(caps);
-	if (writer->type() != CAPS_TYPE_WRITER)
-		return CAPS_ERR_RDONLY;
-	static_cast<CapsWriter*>(writer)->write(v);
-	return CAPS_SUCCESS;
+	return reinterpret_cast<Caps*>(caps)->write(v);
 }
 
 int32_t caps_write_float(caps_t caps, float v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
-	Caps* writer = reinterpret_cast<Caps*>(caps);
-	if (writer->type() != CAPS_TYPE_WRITER)
-		return CAPS_ERR_RDONLY;
-	static_cast<CapsWriter*>(writer)->write(v);
-	return CAPS_SUCCESS;
+	return reinterpret_cast<Caps*>(caps)->write(v);
 }
 
 int32_t caps_write_long(caps_t caps, int64_t v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
-	Caps* writer = reinterpret_cast<Caps*>(caps);
-	if (writer->type() != CAPS_TYPE_WRITER)
-		return CAPS_ERR_RDONLY;
-	static_cast<CapsWriter*>(writer)->write(v);
-	return CAPS_SUCCESS;
+	return reinterpret_cast<Caps*>(caps)->write(v);
 }
 
 int32_t caps_write_double(caps_t caps, double v) {
 	if (caps == 0)
 		return CAPS_ERR_INVAL;
-	Caps* writer = reinterpret_cast<Caps*>(caps);
-	if (writer->type() != CAPS_TYPE_WRITER)
-		return CAPS_ERR_RDONLY;
-	static_cast<CapsWriter*>(writer)->write(v);
-	return CAPS_SUCCESS;
+	return reinterpret_cast<Caps*>(caps)->write(v);
 }
 
 int32_t caps_write_string(caps_t caps, const char* v) {
-	if (caps == 0 || v == nullptr)
+	if (caps == 0)
 		return CAPS_ERR_INVAL;
-	Caps* writer = reinterpret_cast<Caps*>(caps);
-	if (writer->type() != CAPS_TYPE_WRITER)
-		return CAPS_ERR_RDONLY;
-	static_cast<CapsWriter*>(writer)->write(v);
-	return CAPS_SUCCESS;
+	return reinterpret_cast<Caps*>(caps)->write(v);
 }
 
 int32_t caps_write_binary(caps_t caps, const void* v, uint32_t length) {
-	if (caps == 0 || v == nullptr || length == 0)
+	if (caps == 0)
 		return CAPS_ERR_INVAL;
-	Caps* writer = reinterpret_cast<Caps*>(caps);
-	if (writer->type() != CAPS_TYPE_WRITER)
-		return CAPS_ERR_RDONLY;
-	static_cast<CapsWriter*>(writer)->write(v, length);
-	return CAPS_SUCCESS;
+	return reinterpret_cast<Caps*>(caps)->write(v, length);
 }
 
 int32_t caps_write_object(caps_t caps, caps_t v) {
-	if (caps == 0 || v == 0)
+	if (caps == 0)
 		return CAPS_ERR_INVAL;
 	Caps* writer = reinterpret_cast<Caps*>(caps);
 	if (writer->type() != CAPS_TYPE_WRITER)
 		return CAPS_ERR_RDONLY;
-	static_cast<CapsWriter*>(writer)->write(reinterpret_cast<Caps*>(v));
+	Caps* o = reinterpret_cast<Caps*>(v);
+	int8_t* data = nullptr;
+	int32_t size;
+	bool allocated = false;
+	if (o == nullptr) {
+		size = 0;
+	} else if (o->type() == CAPS_TYPE_WRITER) {
+		size = o->serialize(nullptr, 0);
+		if (size > 0) {
+			data = new int8_t[size];
+			o->serialize(data, size);
+			allocated = true;
+		} else {
+			size = 0;
+		}
+	} else {
+		size = static_cast<CapsReader*>(o)->binary_size();
+		data = (int8_t*)static_cast<CapsReader*>(o)->binary_data();
+	}
+	static_cast<CapsWriter*>(writer)->write(data, size);
+	if (allocated)
+		delete[] data;
 	return CAPS_SUCCESS;
 }
 
 int32_t caps_read_integer(caps_t caps, int32_t* r) {
 	if (caps == 0 || r == nullptr)
 		return CAPS_ERR_INVAL;
-	Caps* reader = reinterpret_cast<Caps*>(caps);
-	if (reader->type() != CAPS_TYPE_READER)
-		return CAPS_ERR_WRONLY;
-	return static_cast<CapsReader*>(reader)->read(*r);
+	return reinterpret_cast<Caps*>(caps)->read(*r);
 }
 
 int32_t caps_read_long(caps_t caps, int64_t* r) {
 	if (caps == 0 || r == nullptr)
 		return CAPS_ERR_INVAL;
-	Caps* reader = reinterpret_cast<Caps*>(caps);
-	if (reader->type() != CAPS_TYPE_READER)
-		return CAPS_ERR_WRONLY;
-	return static_cast<CapsReader*>(reader)->read(*r);
+	return reinterpret_cast<Caps*>(caps)->read(*r);
 }
 
 int32_t caps_read_float(caps_t caps, float* r) {
 	if (caps == 0 || r == nullptr)
 		return CAPS_ERR_INVAL;
-	Caps* reader = reinterpret_cast<Caps*>(caps);
-	if (reader->type() != CAPS_TYPE_READER)
-		return CAPS_ERR_WRONLY;
-	return static_cast<CapsReader*>(reader)->read(*r);
+	return reinterpret_cast<Caps*>(caps)->read(*r);
 }
 
 int32_t caps_read_double(caps_t caps, double* r) {
 	if (caps == 0 || r == nullptr)
 		return CAPS_ERR_INVAL;
-	Caps* reader = reinterpret_cast<Caps*>(caps);
-	if (reader->type() != CAPS_TYPE_READER)
-		return CAPS_ERR_WRONLY;
-	return static_cast<CapsReader*>(reader)->read(*r);
+	return reinterpret_cast<Caps*>(caps)->read(*r);
 }
 
 int32_t caps_read_string(caps_t caps, const char** r) {
@@ -160,7 +175,22 @@ int32_t caps_read_object(caps_t caps, caps_t* r) {
 	Caps* reader = reinterpret_cast<Caps*>(caps);
 	if (reader->type() != CAPS_TYPE_READER)
 		return CAPS_ERR_WRONLY;
-	return static_cast<CapsReader*>(reader)->read(*reinterpret_cast<CapsReader**>(r));
+	string bin;
+	int32_t code = static_cast<CapsReader*>(reader)->read_binary(bin);
+	if (code != CAPS_SUCCESS)
+		return code;
+	if (bin.length() == 0) {
+		*r = 0;
+		return CAPS_SUCCESS;
+	}
+	CapsReader* sub = new CapsReader();
+	code = sub->parse(bin.data(), bin.length(), true);
+	if (code != CAPS_SUCCESS) {
+		delete sub;
+		return code;
+	}
+	*r = reinterpret_cast<caps_t>(sub);
+	return CAPS_SUCCESS;
 }
 
 void caps_destroy(caps_t caps) {
@@ -169,12 +199,23 @@ void caps_destroy(caps_t caps) {
 }
 
 int32_t caps_binary_info(const void* data, uint32_t* version, uint32_t* length) {
-	const uint32_t* h = reinterpret_cast<const uint32_t*>(data);
-	if ((h[0] & (~VERSION_MASK)) != MAGIC_NUM)
-		return CAPS_ERR_CORRUPTED;
-	if (version)
-		*version = h[0] & VERSION_MASK;
-	if (length)
-		*length = h[1];
-	return CAPS_SUCCESS;
+	return Caps::binary_info(data, version, length);
 }
+
+/**
+caps_t caps_duplicate(caps_t src, uint32_t mode) {
+	if (src == 0)
+		return 0;
+	caps_t res = 0;
+	if (mode == CAPS_DUP_RDONLY) {
+		CapsReader* r = new CapsReader();
+		*r = *reinterpret_cast<Caps*>(src);
+		res = reinterpret_cast<caps_t>(r);
+	} else if (mode == CAPS_DUP_WRONLY) {
+		CapsWriter* w = new CapsWriter();
+		*w = *reinterpret_cast<Caps*>(src);
+		res = reinterpret_cast<caps_t>(w);
+	}
+	return res;
+}
+*/

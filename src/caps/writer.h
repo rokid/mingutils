@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <vector>
 #include "defs.h"
+#include "caps.h"
 
 namespace rokid {
 
@@ -14,23 +15,33 @@ public:
 
 	~CapsWriter() noexcept;
 
-	void write(int32_t v);
-	void write(int64_t v);
-	void write(float v);
-	void write(double v);
-	void write(const char* v);
-	void write(const void* v, uint32_t l);
-	void write(Caps* v);
-
-	int32_t serialize(void* buf, uint32_t bufsize);
+	CapsWriter& operator = (const Caps& o);
 
 	// override from 'Caps'
-	int32_t type() const { return CAPS_TYPE_WRITER; }
+	int32_t write(int32_t v);
+	int32_t write(int64_t v);
+	int32_t write(float v);
+	int32_t write(double v);
+	int32_t write(const char* v);
+	int32_t write(const void* v, uint32_t l);
+	int32_t write(std::shared_ptr<Caps>& v);
+	int32_t serialize(void* buf, uint32_t bufsize) const;
 
+	int32_t read(int32_t& v) { return CAPS_ERR_WRONLY; }
+	int32_t read(float& v) { return CAPS_ERR_WRONLY; }
+	int32_t read(int64_t& v) { return CAPS_ERR_WRONLY; }
+	int32_t read(double& v) { return CAPS_ERR_WRONLY; }
+	int32_t read_string(std::string& v) { return CAPS_ERR_WRONLY; }
+	int32_t read_binary(std::string& v) { return CAPS_ERR_WRONLY; }
+	int32_t read(std::shared_ptr<Caps>& v) { return CAPS_ERR_WRONLY; }
+
+	int32_t type() const { return CAPS_TYPE_WRITER; }
 	uint32_t binary_size() const;
 
-private:
+public:
 	std::vector<Member*> members;
+
+private:
 	uint32_t number_member_number = 0;
 	uint32_t long_member_number = 0;
 	uint32_t string_member_number = 0;
