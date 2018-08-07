@@ -235,7 +235,8 @@ int32_t CapsWriter::write(shared_ptr<Caps>& v) {
 	m->value = v;
 	members.push_back(m);
 	++binary_object_member_number;
-	binary_section_size += ALIGN4(v->binary_size());
+	if (v.get())
+		binary_section_size += ALIGN4(v->binary_size());
 	return CAPS_SUCCESS;
 }
 
