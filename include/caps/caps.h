@@ -17,6 +17,8 @@
 #define CAPS_TYPE_WRITER 0
 #define CAPS_TYPE_READER 1
 
+typedef intptr_t caps_t;
+
 #ifdef __cplusplus
 #include <memory>
 #include <string>
@@ -54,12 +56,14 @@ public:
 
 	// 同c api: caps_binary_info
 	static int32_t binary_info(const void* data, uint32_t* version, uint32_t* length);
+
+	static std::shared_ptr<Caps> convert(caps_t caps);
+
+	static caps_t convert(std::shared_ptr<Caps>& caps);
 };
 
 extern "C" {
 #endif
-
-typedef intptr_t caps_t;
 
 // create创建的caps_t对象可写，不可读
 caps_t caps_create();

@@ -22,6 +22,34 @@ int32_t Caps::parse(const void* data, uint32_t length,
 	return CAPS_SUCCESS;
 }
 
+shared_ptr<Caps> Caps::convert(caps_t caps) {
+	shared_ptr<Caps> r;
+	if (caps) {
+		Caps* b = reinterpret_cast<Caps*>(caps);
+		if (b->type() == CAPS_TYPE_WRITER) {
+			CapsWriter* w = new CapsWriter();
+			*w = *b;
+			r.reset(w);
+		} else {
+			CapsReader* rd = new CapsReader();
+			*rd = *b;
+			r.reset(rd);
+		}
+	}
+	return r;
+}
+
+caps_t Caps::convert(std::shared_ptr<Caps>& caps) {
+	if (caps->type() == CAPS_TYPE_WRITER) {
+		CapsWriter* w = new CapsWriter();
+		*w = *caps.get();
+		return reinterpret_cast<caps_t>(w);
+	}
+	CapsReader* r = new CapsReader();
+	*r = *caps.get();
+	return reinterpret_cast<caps_t>(r);
+}
+
 int32_t Caps::binary_info(const void* data, uint32_t* version,
 		uint32_t* length) {
 	if (data == nullptr)
