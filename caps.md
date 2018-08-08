@@ -1,34 +1,78 @@
 # 序列化工具Caps
 
-版本: 草稿2
+版本: 1
 
 作者: chen.zhang@rokid.com
+
+更新时间: 2018.08.08 17:09
 
 ## 概述
 
 * 支持顺序读写的序列化反序列化工具
-* c接口实现
+* c/c++接口实现
 * 不支持线程安全
 
-序列化示例
+**c++接口序列化示例**
+
+```
+char data[4] = { 0, 1, 2, 3};
+char odata[256];
+int32_t len;
+
+shared_ptr<Caps> obj = Caps::new_instance();
+obj->write((int32_t)100);
+obj->write((int64_t)10000);
+obj->write("hello world");
+obj->write(data, sizeof(data));
+shared_ptr<Caps> subobj = Caps::new_instance();
+subobj->write(0.0f);
+obj->write(subobj);
+len = obj->serialize(odata, sizeof(odata);
+```
+
+**c接口序列化示例**
 
 ```
 caps_t obj = caps_create();
 char data[4] = { 0, 1, 2, 3 };
 char odata[256];
-uint32_t len;
+int32_t len;
 
-caps_add_integer(obj, 100);
-caps_add_long(obj, 10000);
-caps_add_string(obj, "hello world");
-caps_add_binary(obj, data, sizeof(data));
+caps_write_integer(obj, 100);
+caps_write_long(obj, 10000);
+caps_write_string(obj, "hello world");
+caps_write_binary(obj, data, sizeof(data));
 caps_t subobj = caps_create();
-caps_add_float(subobj, 0.0f);
-caps_add_object(obj, subobj);
+caps_write_float(subobj, 0.0f);
+caps_write_object(obj, subobj);
 len = caps_serialize(obj, odata, sizeof(odata));
+caps_destroy(subobj);
+caps_destroy(obj);
 ```
 
-反序列化示例
+**c++接口反序列化示例**
+
+```
+shared_ptr<Caps> obj;
+int32_t i;
+int64_t l;
+string str;
+string data;
+shared_ptr<Caps> subobj;
+float f;
+
+if (Caps::parse(odata, len, obj) != CAPS_SUCCESS) {
+    // TODO: 错误处理
+}
+obj->read(i);
+obj->read(l);
+obj->read_string(str);
+obj->read_binary(data);
+obj->read(subobj);
+subobj->read(f);
+```
+
+**c接口反序列化示例**
 
 ```
 caps_t obj;
@@ -40,40 +84,79 @@ uint32_t data_len;
 caps_t subobj;
 float f;
 
-caps_parse(odata, len, &obj);
+if (caps_parse(odata, len, &obj) != CAPS_SUCCESS) {
+    // TODO: 错误处理
+}
 caps_read_integer(obj, &i);
 caps_read_long(obj, &l);
 caps_read_string(obj, &str);
 caps_read_binary(obj, &data, &data_len);
 caps_read_object(obj, &subobj);
 caps_read_float(subobj, &f);
+caps_destroy(subobj);
+caps_destroy(obj);
 ```
 
 ## 接口定义
 
+### c++ Caps类静态成员函数
+
 名称 | 描述 | 返回类型 | | 参数 | |
 --- | --- | --- | --- | --- | ---
-caps_create | 创建对象 | caps_t | caps对象 | | |
-caps_parse | 反序列化 | int32_t | [错误码](#anchor13) | void* | caps对象序列化后的数据
+new_instance | 创建对象，生成的对象只写 | shared_ptr\<Caps> | | | |
+parse | 反序列化，生成的对象只读 | int32_t | [错误码](#anchor13) | void* | 二进制数据(由caps_serialize生成的合法数据)
+ | | | | uint32 | 数据长度
+ | | | | shared_ptr\<Caps>& | 生成的caps对象
+
+### c++ Caps类非静态成员函数
+
+名称 | 描述 | 返回类型 | | 参数 | |
+--- | --- | --- | --- | --- | ---
+serialize | 序列化 | int32 | 序列化产生的数据长度或错误码 | void* | 序列化生成数据存储区
+ | | | | uint32 | 存储区长度
+type | 获取caps类型 | int32 | [caps类型](#anchor14) | |
+binary_size | 获取caps二进制数据长度 | uint32 | 数据长度 | |
+write | 向对象添加成员 | int32 | [错误码](#anchor13) | int32 | 向对象添加的整数值
+write | 向对象添加成员 | int32 | [错误码](#anchor13) | int64 | 向对象添加的整数值
+write | 向对象添加成员 | int32 | [错误码](#anchor13) | float | 向对象添加的浮点值
+write | 向对象添加成员 | int32 | [错误码](#anchor13) | double | 向对象添加的浮点值
+write | 向对象添加成员 | int32 | [错误码](#anchor13) | char* | 向对象添加的字符串
+write | 向对象添加成员 | int32 | [错误码](#anchor13) | void* | 向对象添加的二进制数据
+ | | | | uint32 | 数据长度
+write | 向对象添加成员 | int32 | [错误码](#anchor13) | shared_ptr\<Caps> | 向caps对象添加的caps子对象
+read | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | int32_t& | 读取到的值
+read | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | int64_t& | 读取到的值
+read | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | float& | 读取到的值
+read | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | double& | 读取到的值
+read\_string | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | std::string& | 读取到的值
+read\_binary | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | std::string& | 读取到的值
+read | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | shared_ptr\<Caps>& | 读取到的子对象
+
+### c接口
+
+名称 | 描述 | 返回类型 | | 参数 | |
+--- | --- | --- | --- | --- | ---
+caps_create | 创建对象，生成的对象只写 | caps_t | caps对象 | | |
+caps_parse | 反序列化，生成的对象只读 | int32_t | [错误码](#anchor13) | void* | 二进制数据(由caps_serialize生成的合法数据)
  | | | | uint32 | 数据长度
  | | | | caps_t* | 生成的caps对象
 caps_serialize | 序列化 | int32 | 序列化产生的数据长度或错误码 | caps_t | caps对象
  | | | | void* | 序列化生成数据存储区
  | | | | uint32 | 存储区长度
-caps\_add\_integer | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
+caps\_write\_integer | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | int32 | 向对象添加的整数值
-caps\_add\_long | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
+caps\_write\_long | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | int64 | 向对象添加的整数值
-caps\_add\_float | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
+caps\_write\_float | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | float | 向对象添加的浮点值
-caps\_add\_double | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
+caps\_write\_double | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | double | 向对象添加的浮点值
-caps\_add\_string | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
+caps\_write\_string | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | char* | 向对象添加的字符串
-caps\_add\_binary | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
+caps\_write\_binary | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | void* | 向对象添加的二进制数据
  | | | | uint32 | 数据长度
-caps\_add\_object | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
+caps\_write\_object | 向对象添加成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | caps_t | 向caps对象添加的caps子对象
 caps\_read\_integer | 按顺序读取对象成员 | int32 | [错误码](#anchor13) | caps_t | caps对象
  | | | | int32_t* | 读取到的值
@@ -104,6 +187,13 @@ WRONLY | -4 | caps对象只写
 RDONLY | -5 | caps对象只读
 INCORRECT_TYPE | -6 | caps读取当前值时类型不匹配
 EOO | -7 | 读取到对象末尾了
+
+### <a id="anchor14"></a>caps类型
+
+名称 | 值 | 描述
+--- | --- | ---
+CAPS\_TYPE\_WRITER | 0 | 只能用于调用write方法
+CAPS\_TYPE\_READER | 1 | 只能用于调用read方法
 
 ## 数据结构
 
