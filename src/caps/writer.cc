@@ -236,7 +236,7 @@ int32_t CapsWriter::write(shared_ptr<Caps>& v) {
 	members.push_back(m);
 	++binary_object_member_number;
 	if (v.get())
-		binary_section_size += ALIGN4(v->binary_size());
+		binary_section_size += v->binary_size();
 	return CAPS_SUCCESS;
 }
 
@@ -253,7 +253,7 @@ uint32_t CapsWriter::binary_size() const {
 	r += long_member_number * sizeof(int64_t); // long section
 	r += binary_section_size;
 	r += string_section_size;
-	return r;
+	return ALIGN4(r);
 }
 
 int32_t CapsWriter::serialize(void* buf, uint32_t bufsize) const {

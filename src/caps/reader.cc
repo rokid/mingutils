@@ -102,7 +102,7 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize, bool dup) {
 		ssize += string_infos[i].len + 1;
 	}
 	const int8_t* e = string_section + ssize;
-	if (e - b != datasize)
+	if (ALIGN4(e - b) != datasize)
 		return CAPS_ERR_CORRUPTED;
 	// TODO: check member offsets valid
 	//       check StringInfo offsets valid
