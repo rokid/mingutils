@@ -105,7 +105,10 @@ static bool parse_path(Uri* uri, const char* s, int32_t b, int32_t e) {
 		if (found_symbol < 2) {
 			if (s[i] == '#') {
 				if (i - nb > 0) {
-					uri->query.assign(s + nb, i - nb);
+					if (found_symbol == 0)
+						uri->path.assign(s + nb, i - nb);
+					else
+						uri->query.assign(s + nb, i - nb);
 				}
 				nb = i + 1;
 				// found '#', don't need find '?'

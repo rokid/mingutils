@@ -12,7 +12,7 @@ static const char* test_uris[] = {
 	"tel:+1-816-555-1212",
 	"telnet://192.0.2.16:80/",
 	"urn:oasis:names:specification:docbook:dtd:xml:4.1.2",
-	"unix:rokid-flora"
+	"unix:rokid-flora#foo"
 };
 
 typedef struct {
@@ -49,6 +49,7 @@ static void prepare_correct_results() {
 	correct_results[5].path = "oasis:names:specification:docbook:dtd:xml:4.1.2";
 	correct_results[6].scheme = "unix";
 	correct_results[6].path = "rokid-flora";
+	correct_results[6].fragment = "foo";
 }
 
 static bool check_result(Uri& uri, UriResult& r) {
