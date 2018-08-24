@@ -115,10 +115,22 @@ target_link_libraries (uri_demo
 	misc
 )
 
-file(GLOB caps_demo_src_files demo/caps/*.cc)
+set(caps_demo_src_files
+	demo/caps/caps_demo.cc
+	demo/caps/random_caps_factory.cc
+	demo/caps/random_caps_factory.h
+	demo/caps/demo_defs.h
+)
 add_executable (caps_demo ${caps_demo_src_files})
 target_link_libraries (caps_demo
 	caps
 	misc
+)
+set(caps_size_src_files
+	demo/caps/caps_size.cc
+)
+add_executable(caps_size ${caps_size_src_files})
+target_link_libraries(caps_size
+	caps
 )
 endif(BUILD_DEMO)
