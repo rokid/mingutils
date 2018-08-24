@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define CAPS_VERSION 1
+#define CAPS_VERSION 2
 
 #define CAPS_SUCCESS 0
 #define CAPS_ERR_INVAL -1  // 参数非法

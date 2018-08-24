@@ -41,18 +41,19 @@ public:
 	int32_t type() const { return CAPS_TYPE_READER; }
 	uint32_t binary_size() const;
 
-
-public:
-	const Header* header = nullptr;
-	const int8_t* member_declarations = nullptr;
-	const uint32_t* number_values = nullptr;
-	const StringInfo* string_infos = nullptr;
-	const BinaryInfo* binary_infos = nullptr;
-	const int64_t* long_values = nullptr;
+	int8_t current_member_type() const;
+	bool end_of_object() const;
+	void record(CapsReaderRecord& rec) const;
+	void rollback(const CapsReaderRecord& rec);
 
 private:
+	const Header* header = nullptr;
+	const char* member_declarations = nullptr;
+	const int32_t* number_values = nullptr;
+	const int64_t* long_values = nullptr;
+	const uint32_t* bin_sizes = nullptr;
 	const int8_t* binary_section = nullptr;
-	const int8_t* string_section = nullptr;
+	const char* string_section = nullptr;
 	uint32_t current_read_member = 0;
 	int32_t duplicated = 0;
 

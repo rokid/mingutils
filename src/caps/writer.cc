@@ -8,16 +8,12 @@ namespace rokid {
 
 typedef struct {
 	char* mdecls;
-	uint32_t* ivalues;
-	StringInfo* sinfos;
-	BinaryInfo* binfos;
+	int32_t* ivalues;
 	int64_t* lvalues;
+	uint32_t* bin_sizes;
 	int8_t* bin_section;
-	int8_t* str_section;
+	char* str_section;
 
-	uint32_t long_index = 0;
-	uint32_t string_index = 0;
-	uint32_t binary_index = 0;
 	uint32_t cur_strp = 0;
 	uint32_t cur_binp = 0;
 } WritePointer;
@@ -96,48 +92,44 @@ public:
 
 void IntegerMember::do_serialize(Header* header, WritePointer* wp) const {
 	wp->mdecls[0] = 'i';
-	++wp->mdecls;
+	--wp->mdecls;
 	wp->ivalues[0] = value;
 	++wp->ivalues;
 }
 
 void FloatMember::do_serialize(Header* header, WritePointer* wp) const {
 	wp->mdecls[0] = 'f';
-	++wp->mdecls;
+	--wp->mdecls;
 	memcpy(wp->ivalues, &value, sizeof(value));
 	++wp->ivalues;
 }
 
 void LongMember::do_serialize(Header* header, WritePointer* wp) const {
 	wp->mdecls[0] = 'l';
-	++wp->mdecls;
-	wp->lvalues[wp->long_index] = value;
-	++wp->long_index;
+	--wp->mdecls;
+	wp->lvalues[0] = value;
+	++wp->lvalues;
 }
 
 void DoubleMember::do_serialize(Header* header, WritePointer* wp) const {
 	wp->mdecls[0] = 'd';
-	++wp->mdecls;
-	memcpy(wp->lvalues + wp->long_index, &value, sizeof(value));
-	++wp->long_index;
+	--wp->mdecls;
+	memcpy(wp->lvalues, &value, sizeof(value));
+	++wp->lvalues;
 }
 
 void StringMember::do_serialize(Header* header, WritePointer* wp) const {
 	wp->mdecls[0] = 'S';
-	++wp->mdecls;
-	wp->sinfos[wp->string_index].len = value.length();
-	wp->sinfos[wp->string_index].offset = header->string_section + wp->cur_strp;
-	++wp->string_index;
+	--wp->mdecls;
 	memcpy(wp->str_section + wp->cur_strp, value.c_str(), value.length() + 1);
 	wp->cur_strp += value.length() + 1;
 }
 
 void BinaryMember::do_serialize(Header* header, WritePointer* wp) const {
 	wp->mdecls[0] = 'B';
-	++wp->mdecls;
-	wp->binfos[wp->binary_index].len = value.length();
-	wp->binfos[wp->binary_index].offset = header->binary_section + wp->cur_binp;
-	++wp->binary_index;
+	--wp->mdecls;
+	wp->bin_sizes[0] = value.length();
+	++wp->bin_sizes;
 	if (value.length() > 0) {
 		memcpy(wp->bin_section + wp->cur_binp, value.data(), value.length());
 		wp->cur_binp += ALIGN4(value.length());
@@ -148,14 +140,11 @@ void ObjectMember::do_serialize(Header* header, WritePointer* wp) const {
 	int32_t obj_size;
 
 	wp->mdecls[0] = 'O';
-	++wp->mdecls;
+	--wp->mdecls;
 	if (value.get())
 		obj_size = value->binary_size();
 	else
 		obj_size = 0;
-	wp->binfos[wp->binary_index].len = obj_size;
-	wp->binfos[wp->binary_index].offset = header->binary_section + wp->cur_binp;
-	++wp->binary_index;
 	if (value.get()) {
 		if (value->type() == CAPS_TYPE_WRITER) {
 			static_pointer_cast<CapsWriter>(value)->serialize(wp->bin_section + wp->cur_binp, obj_size);
@@ -163,6 +152,8 @@ void ObjectMember::do_serialize(Header* header, WritePointer* wp) const {
 			memcpy(wp->bin_section + wp->cur_binp, static_pointer_cast<CapsReader>(value)->binary_data(), obj_size);
 		}
 	}
+	wp->bin_sizes[0] = obj_size;
+	++wp->bin_sizes;
 	wp->cur_binp += ALIGN4(obj_size);
 }
 
@@ -235,24 +226,27 @@ int32_t CapsWriter::write(shared_ptr<Caps>& v) {
 	m->value = v;
 	members.push_back(m);
 	++binary_object_member_number;
-	if (v.get())
-		binary_section_size += v->binary_size();
+	sub_objects.push_back(v);
 	return CAPS_SUCCESS;
 }
 
 uint32_t CapsWriter::binary_size() const {
 	uint32_t r;
+	size_t i;
 	
 	r = sizeof(Header);
-	r += ALIGN4(members.size() + 1); // member declaration
-	r += number_member_number * sizeof(uint32_t); // number section
-	r += string_member_number * sizeof(StringInfo); // string info section
-	r += binary_object_member_number * sizeof(BinaryInfo); // binary info section
-	r = ALIGN8(r);
-	// 以上全部加起来ALIGN8
 	r += long_member_number * sizeof(int64_t); // long section
+	r += number_member_number * sizeof(uint32_t); // number section
+	r += binary_object_member_number * sizeof(uint32_t); // binary sizes
 	r += binary_section_size;
+	// sub objects
+	object_data_size = 0;
+	for (i = 0; i < sub_objects.size(); ++i) {
+		object_data_size += sub_objects[i]->binary_size();
+	}
+	r += object_data_size;
 	r += string_section_size;
+	r += members.size() + 1; // member declarations
 	return ALIGN4(r);
 }
 
@@ -264,25 +258,17 @@ int32_t CapsWriter::serialize(void* buf, uint32_t bufsize) const {
 	if (bufsize < total_size || buf == nullptr)
 		return total_size;
 	header = reinterpret_cast<Header*>(buf);
-	wp.mdecls = reinterpret_cast<char*>(header + 1);
-	wp.ivalues = reinterpret_cast<uint32_t*>(wp.mdecls + ALIGN4(members.size() + 1));
-	wp.sinfos = reinterpret_cast<StringInfo*>(wp.ivalues + number_member_number);
-	wp.binfos = reinterpret_cast<BinaryInfo*>(wp.sinfos + string_member_number);
-	int32_t loff = ALIGN8(reinterpret_cast<int8_t*>(wp.binfos + binary_object_member_number) - reinterpret_cast<int8_t*>(buf));
-	wp.lvalues = reinterpret_cast<int64_t*>(reinterpret_cast<int8_t*>(buf) + loff);
-	wp.bin_section = reinterpret_cast<int8_t*>(wp.lvalues + long_member_number);
-	wp.str_section = wp.bin_section + binary_section_size;
+	wp.lvalues = reinterpret_cast<int64_t*>(header + 1);
+	wp.ivalues = reinterpret_cast<int32_t*>(wp.lvalues + long_member_number);
+	wp.bin_sizes = reinterpret_cast<uint32_t*>(wp.ivalues + number_member_number);
+	wp.bin_section = reinterpret_cast<int8_t*>(wp.bin_sizes + binary_object_member_number);
+	wp.str_section = reinterpret_cast<char*>(wp.bin_section + binary_section_size + object_data_size);
+	wp.mdecls = reinterpret_cast<char*>(buf) + total_size - 1;
 
-	header->magic = MAGIC_NUM | VERSION_NUM;
+	header->magic = MAGIC_NUM | CAPS_VERSION;
 	header->length = total_size;
-	header->number_section = reinterpret_cast<int8_t*>(wp.ivalues) - reinterpret_cast<int8_t*>(buf);
-	header->long_section = reinterpret_cast<int8_t*>(wp.lvalues) - reinterpret_cast<int8_t*>(buf);
-	header->string_info_section = reinterpret_cast<int8_t*>(wp.sinfos) - reinterpret_cast<int8_t*>(buf);
-	header->binary_info_section = reinterpret_cast<int8_t*>(wp.binfos) - reinterpret_cast<int8_t*>(buf);
-	header->string_section = reinterpret_cast<int8_t*>(wp.str_section) - reinterpret_cast<int8_t*>(buf);
-	header->binary_section = reinterpret_cast<int8_t*>(wp.bin_section) - reinterpret_cast<int8_t*>(buf);
 	wp.mdecls[0] = members.size();
-	++wp.mdecls;
+	--wp.mdecls;
 
 	size_t i;
 	for (i = 0; i < members.size(); ++i) {
@@ -292,57 +278,54 @@ int32_t CapsWriter::serialize(void* buf, uint32_t bufsize) const {
 }
 
 static void copy_from_reader(CapsWriter* dst, const CapsReader* src) {
-	const int8_t* b = reinterpret_cast<const int8_t*>(src->header);
-	const Header* header = src->header;
-	const int8_t* member_declarations = reinterpret_cast<const int8_t*>(header + 1);
-	// first element is number of members
-	++member_declarations;
-	const int32_t* number_values = reinterpret_cast<const int32_t*>(b + header->number_section);
-	const StringInfo* string_infos = reinterpret_cast<const StringInfo*>(b + header->string_info_section);
-	const BinaryInfo* binary_infos = reinterpret_cast<const BinaryInfo*>(b + header->binary_info_section);
-	const int64_t* long_values = reinterpret_cast<const int64_t*>(b + header->long_section);
-	const int8_t* binary_section = reinterpret_cast<const int8_t*>(b + header->binary_section);
-	const int8_t* string_section = reinterpret_cast<const int8_t*>(b + header->string_section);
-	uint8_t num_members = member_declarations[-1];
-	shared_ptr<Caps> sub;
+	int32_t iv;
+	float fv;
+	int64_t lv;
+	double dv;
+	const char* sv;
+	const void* bv;
+	uint32_t bl;
+	shared_ptr<Caps> cv;
+	CapsReaderRecord rec;
+	CapsReader* msrc = const_cast<CapsReader*>(src);
 
-	int32_t i;
-	for (i = 0; i < num_members; ++i) {
-		switch (member_declarations[i]) {
+	msrc->record(rec);
+	while (!msrc->end_of_object()) {
+		switch (msrc->current_member_type()) {
 			case 'i':
-				dst->write(*number_values);
-				++number_values;
+				msrc->read(iv);
+				dst->write(iv);
 				break;
 			case 'f':
-				dst->write(*reinterpret_cast<const float*>(number_values));
-				++number_values;
+				msrc->read(fv);
+				dst->write(fv);
 				break;
 			case 'l':
-				dst->write(*long_values);
-				++long_values;
+				msrc->read(lv);
+				dst->write(lv);
 				break;
 			case 'd':
-				dst->write(*reinterpret_cast<const double*>(long_values));
-				++long_values;
+				msrc->read(dv);
+				dst->write(dv);
 				break;
 			case 'S':
-				dst->write(reinterpret_cast<const char*>(b + string_infos->offset));
-				++string_infos;
+				msrc->read(sv);
+				dst->write(sv);
 				break;
 			case 'B':
-				dst->write(b + binary_infos->offset, binary_infos->len);
-				++binary_infos;
+				msrc->read(bv, bl);
+				dst->write(bv, bl);
 				break;
 			case 'O':
-				Caps::parse(b + binary_infos->offset, binary_infos->len, sub);
-				dst->write(sub);
-				++binary_infos;
+				msrc->read(cv);
+				dst->write(cv);
 				break;
 		}
 	}
+	msrc->rollback(rec);
 }
 
-static void copy_from_writer(CapsWriter* dst, const CapsWriter* src) {
+void CapsWriter::copy_from_writer(CapsWriter* dst, const CapsWriter* src) {
 	size_t i;
 	size_t s = src->members.size();
 	Member* m;

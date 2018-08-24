@@ -38,16 +38,19 @@ public:
 	int32_t type() const { return CAPS_TYPE_WRITER; }
 	uint32_t binary_size() const;
 
-public:
-	std::vector<Member*> members;
+private:
+	void copy_from_writer(CapsWriter* dst, const CapsWriter* src);
 
 private:
+	std::vector<Member*> members;
+	std::vector<std::shared_ptr<Caps> > sub_objects;
 	uint32_t number_member_number = 0;
 	uint32_t long_member_number = 0;
 	uint32_t string_member_number = 0;
 	uint32_t binary_object_member_number = 0;
 	uint32_t binary_section_size = 0;
 	uint32_t string_section_size = 0;
+	mutable uint32_t object_data_size = 0;
 };
 
 } // namespace rokid
