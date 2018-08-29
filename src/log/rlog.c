@@ -6,7 +6,7 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <time.h>
-#include "rlog.h"
+#include "common.h"
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
@@ -148,11 +148,8 @@ static void erase_association_by_tag(Association** associations, const char* tag
 }
 
 // ========= builtin log writer begin ============
-typedef struct {
-	char* buffer;
-	uint32_t size;
-} BuiltinLogBuffer;
 static BuiltinLogBuffer log_buffer_ = { NULL, 0 };
+static BuiltinTCPSocketInst tcp_socket_inst_;
 
 static char loglevel2char(RokidLogLevel lv) {
 	static char level_chars[] = {
@@ -163,7 +160,7 @@ static char loglevel2char(RokidLogLevel lv) {
 	return level_chars[lv];
 }
 
-static int32_t std_log_writer(RokidLogLevel lv, const char* tag,
+int32_t std_log_writer(RokidLogLevel lv, const char* tag,
 		const char* fmt, va_list ap, void* arg1, void* arg2) {
 	char ts[32];
 	rokid_log_timestamp(ts, sizeof(ts));
@@ -215,6 +212,15 @@ static void init_builtin_log_buffer() {
 	}
 }
 
+static void init_builtin_tcp_socket_inst() {
+	int32_t i;
+
+	tcp_socket_inst_.log_buffer = &log_buffer_;
+	for (i = 0; i < MAX_TCP_SOCKET_CONN; ++i)
+		tcp_socket_inst_.cli_sockets[i] = -1;
+	tcp_socket_inst_.listen_fd = -1;
+}
+
 
 /**
 static void file_log_writer(RokidLogLevel lv, const char* tag,
@@ -243,6 +249,7 @@ static void initialize() {
 	}
 
 	init_builtin_log_buffer();
+	init_builtin_tcp_socket_inst();
 
 	Endpoint* ep;
 	add_endpoint(&log_instance_.endpoints, "stdout", std_log_writer, &log_buffer_);
@@ -253,6 +260,7 @@ static void initialize() {
 	// set default endpoint to logcat
 	ep = log_instance_.endpoints;
 #endif
+	add_endpoint(&log_instance_.endpoints, "tcp-socket", tcp_socket_log_writer, &tcp_socket_inst_);
 	// set default endpoint to 'stdout'
 	log_instance_.default_association.next = NULL;
 	log_instance_.default_association.prev = NULL;
@@ -358,6 +366,9 @@ static int32_t ctl_default_endpoint(va_list ap) {
 	log_instance_.default_association.endpoint = ep;
 	if (strcmp(epn, "stdout") == 0) {
 		log_instance_.default_association.arg = (void*)STDOUT_FILENO;
+	} else if (strcmp(epn, "tcp-socket") == 0) {
+		if (start_tcp_listen(ep->arg, arg) < 0)
+			return -2;
 	} else {
 		log_instance_.default_association.arg = arg;
 	}

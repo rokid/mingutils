@@ -133,4 +133,15 @@ add_executable(caps_size ${caps_size_src_files})
 target_link_libraries(caps_size
 	caps
 )
+set(rlog_demo_src_files
+	demo/log/rlog_demo.cc
+)
+add_executable(rlog_demo ${rlog_demo_src_files})
+target_link_libraries(rlog_demo
+	rlog
+)
+set(tcp_rlogcat_src_files
+	demo/log/tcp-rlogcat.cc
+)
+add_executable(tcp-rlogcat ${tcp_rlogcat_src_files})
 endif(BUILD_DEMO)

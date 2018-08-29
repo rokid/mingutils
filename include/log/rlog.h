@@ -41,6 +41,11 @@ typedef struct {
 	const char* endpoint;
 } RokidLogAssociation;
 
+typedef struct {
+	const char* host;
+	int32_t port;
+} TCPSocketArg;
+
 void rokid_log_print(RokidLogLevel lv, const char* tag, const char* fmt, ...);
 
 // 'rokid_log_ctl' can take an optional second argument.
@@ -76,7 +81,7 @@ int32_t rokid_log_ctl(RokidLogControlOperation op, ...);
 // return number of endpoints (builtin + plugin)
 // 'endpoints' can be NULL
 // if 'endpoints' not NULL, 'arr_size' specify 'endpoints' array size
-// note: builtin log endpoint names is "stdout", "file"
+// note: builtin log endpoint names is "stdout", "file", "tcp-socket"
 int32_t rokid_log_endpoints(RokidLogEndpoint* endpoints, uint32_t arr_size);
 
 // return number of associations
