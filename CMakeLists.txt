@@ -37,25 +37,6 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${common_cxxflags}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
 set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
 
-# rlog src files
-file (GLOB_RECURSE rlog_src_files
-	src/log/*.h
-	src/log/*.c
-	include/log/*.h
-)
-
-add_library (rlog SHARED
-	${rlog_src_files}
-)
-target_include_directories (rlog PUBLIC
-	include/log
-)
-target_link_libraries (rlog
-)
-install (DIRECTORY include/log
-	DESTINATION include
-)
-
 # target 'misc'
 file(GLOB misc_src_files
 	include/misc/*.h
@@ -71,6 +52,27 @@ target_compile_options(misc PRIVATE
 	-fPIC
 )
 install(DIRECTORY include/misc
+	DESTINATION include
+)
+
+# rlog src files
+file (GLOB_RECURSE rlog_src_files
+	src/log/*.h
+	src/log/*.cc
+	include/log/*.h
+)
+
+add_library (rlog SHARED
+	${rlog_src_files}
+)
+target_include_directories (rlog PUBLIC
+	include/log
+  include/misc
+)
+target_link_libraries (rlog
+  misc
+)
+install (DIRECTORY include/log
 	DESTINATION include
 )
 

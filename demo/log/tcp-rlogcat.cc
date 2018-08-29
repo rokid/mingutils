@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 	struct sockaddr_in addr;
 	struct hostent* hp;
 	const char* host = "localhost";
-	int32_t port = 47033;
+	int32_t port = 7777;
 	if (argc >= 2) {
 		int n = atoi(argv[1]);
 		if (n > 0)

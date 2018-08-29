@@ -11,10 +11,8 @@ int main(int argc, char** argv) {
 	KLOGD(TAG, "hello world");
 	KLOGV(TAG, "hello world");
 
-	TCPSocketArg logarg;
-	logarg.host = "0.0.0.0";
-	logarg.port = 7777;
-	rokid_log_ctl(ROKID_LOG_CTL_DEFAULT_ENDPOINT, "tcp-socket", &logarg);
+  RLog::add_endpoint("socket", ROKID_LOGWRITER_SOCKET);
+  RLog::enable_endpoint("socket", (void *)"tcp://0.0.0.0:7777/", true);
 
 	printf("press enter key to send tcp socket log\n");
 	getchar();
