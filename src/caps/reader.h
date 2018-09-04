@@ -33,6 +33,7 @@ public:
 	int32_t read_string(std::string& r);
 	int32_t read_binary(std::string& r);
 	int32_t read(std::shared_ptr<Caps>& r);
+	int32_t next_type() const;
 
 	// read string & binary without memcpy
 	int32_t read(const char*& r);
@@ -40,6 +41,7 @@ public:
 
 	int32_t type() const { return CAPS_TYPE_READER; }
 	uint32_t binary_size() const;
+	uint32_t size() const;
 
 	int8_t current_member_type() const;
 	bool end_of_object() const;

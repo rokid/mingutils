@@ -367,4 +367,8 @@ CapsWriter& CapsWriter::operator = (const Caps& o) {
 	return *this;
 }
 
+uint32_t CapsWriter::size() const {
+	return members.size();
+}
+
 } // namespace rokid

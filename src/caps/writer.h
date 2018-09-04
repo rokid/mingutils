@@ -37,6 +37,8 @@ public:
 
 	int32_t type() const { return CAPS_TYPE_WRITER; }
 	uint32_t binary_size() const;
+	uint32_t size() const;
+	int32_t next_type() const { return CAPS_ERR_WRONLY; }
 
 private:
 	void copy_from_writer(CapsWriter* dst, const CapsWriter* src);

@@ -255,4 +255,15 @@ void CapsReader::rollback(const CapsReaderRecord& rec) {
 	current_read_member = rec.current_read_member;
 }
 
+uint32_t CapsReader::size() const {
+	return member_declarations[1];
+}
+
+int32_t CapsReader::next_type() const {
+	int32_t r = current_member_type();
+	if (r == '\0')
+		return CAPS_ERR_EOO;
+	return r;
+}
+
 } // namespace rokid

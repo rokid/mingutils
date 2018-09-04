@@ -17,6 +17,14 @@
 #define CAPS_TYPE_WRITER 0
 #define CAPS_TYPE_READER 1
 
+#define CAPS_MEMBER_TYPE_INTEGER 'i'
+#define CAPS_MEMBER_TYPE_FLOAT 'f'
+#define CAPS_MEMBER_TYPE_LONG 'l'
+#define CAPS_MEMBER_TYPE_DOUBLE 'd'
+#define CAPS_MEMBER_TYPE_STRING 'S'
+#define CAPS_MEMBER_TYPE_BINRAY 'B'
+#define CAPS_MEMBER_TYPE_OBJECT 'O'
+
 typedef intptr_t caps_t;
 
 #ifdef __cplusplus
@@ -43,9 +51,11 @@ public:
 	virtual int32_t read_string(std::string& r) = 0;
 	virtual int32_t read_binary(std::string& r) = 0;
 	virtual int32_t read(std::shared_ptr<Caps>& v) = 0;
+	virtual int32_t next_type() const = 0;
 
 	virtual int32_t type() const = 0;
 	virtual uint32_t binary_size() const = 0;
+	virtual uint32_t size() const = 0;
 
 	// create WRONLY Caps
 	static std::shared_ptr<Caps> new_instance();
