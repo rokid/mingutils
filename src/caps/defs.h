@@ -10,17 +10,17 @@
 namespace rokid {
 
 typedef struct {
-	uint32_t magic;
-	uint32_t length;
+  uint32_t magic;
+  uint32_t length;
 } Header;
 
 typedef struct {
-	const int32_t* number_values;
-	const int64_t* long_values;
-	const uint32_t* bin_sizes;
-	const int8_t* binary_section;
-	const char* string_section;
-	uint32_t current_read_member;
+  const int32_t* number_values;
+  const int64_t* long_values;
+  const uint32_t* bin_sizes;
+  const int8_t* binary_section;
+  const char* string_section;
+  uint32_t current_read_member;
 } CapsReaderRecord;
 
 } // namespace rokid

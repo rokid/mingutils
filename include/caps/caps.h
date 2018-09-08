@@ -33,43 +33,43 @@ typedef intptr_t caps_t;
 
 class Caps {
 public:
-	virtual ~Caps() = default;
+  virtual ~Caps() = default;
 
-	virtual int32_t write(int32_t v) = 0;
-	virtual int32_t write(float v) = 0;
-	virtual int32_t write(int64_t v) = 0;
-	virtual int32_t write(double v) = 0;
-	virtual int32_t write(const char* v) = 0;
-	virtual int32_t write(const void* v, uint32_t len) = 0;
-	virtual int32_t write(std::shared_ptr<Caps>& v) = 0;
-	virtual int32_t serialize(void* buf, uint32_t size) const = 0;
+  virtual int32_t write(int32_t v) = 0;
+  virtual int32_t write(float v) = 0;
+  virtual int32_t write(int64_t v) = 0;
+  virtual int32_t write(double v) = 0;
+  virtual int32_t write(const char* v) = 0;
+  virtual int32_t write(const void* v, uint32_t len) = 0;
+  virtual int32_t write(std::shared_ptr<Caps>& v) = 0;
+  virtual int32_t serialize(void* buf, uint32_t size) const = 0;
 
-	virtual int32_t read(int32_t& v) = 0;
-	virtual int32_t read(float& v) = 0;
-	virtual int32_t read(int64_t& v) = 0;
-	virtual int32_t read(double& v) = 0;
-	virtual int32_t read_string(std::string& r) = 0;
-	virtual int32_t read_binary(std::string& r) = 0;
-	virtual int32_t read(std::shared_ptr<Caps>& v) = 0;
-	virtual int32_t next_type() const = 0;
+  virtual int32_t read(int32_t& v) = 0;
+  virtual int32_t read(float& v) = 0;
+  virtual int32_t read(int64_t& v) = 0;
+  virtual int32_t read(double& v) = 0;
+  virtual int32_t read_string(std::string& r) = 0;
+  virtual int32_t read_binary(std::string& r) = 0;
+  virtual int32_t read(std::shared_ptr<Caps>& v) = 0;
+  virtual int32_t next_type() const = 0;
 
-	virtual int32_t type() const = 0;
-	virtual uint32_t binary_size() const = 0;
-	virtual uint32_t size() const = 0;
+  virtual int32_t type() const = 0;
+  virtual uint32_t binary_size() const = 0;
+  virtual uint32_t size() const = 0;
 
-	// create WRONLY Caps
-	static std::shared_ptr<Caps> new_instance();
+  // create WRONLY Caps
+  static std::shared_ptr<Caps> new_instance();
 
-	// create RDONLY Caps
-	static int32_t parse(const void* data, uint32_t length,
-			std::shared_ptr<Caps>& caps, bool duplicate = true);
+  // create RDONLY Caps
+  static int32_t parse(const void* data, uint32_t length,
+      std::shared_ptr<Caps>& caps, bool duplicate = true);
 
-	// 同c api: caps_binary_info
-	static int32_t binary_info(const void* data, uint32_t* version, uint32_t* length);
+  // 同c api: caps_binary_info
+  static int32_t binary_info(const void* data, uint32_t* version, uint32_t* length);
 
-	static std::shared_ptr<Caps> convert(caps_t caps);
+  static std::shared_ptr<Caps> convert(caps_t caps);
 
-	static caps_t convert(std::shared_ptr<Caps>& caps);
+  static caps_t convert(std::shared_ptr<Caps>& caps);
 };
 
 extern "C" {

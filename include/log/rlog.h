@@ -9,41 +9,41 @@ extern "C" {
 #endif
 
 typedef enum {
-	ROKID_LOGLEVEL_VERBOSE = 0,
-	ROKID_LOGLEVEL_DEBUG,
-	ROKID_LOGLEVEL_INFO,
-	ROKID_LOGLEVEL_WARNING,
-	ROKID_LOGLEVEL_ERROR,
+  ROKID_LOGLEVEL_VERBOSE = 0,
+  ROKID_LOGLEVEL_DEBUG,
+  ROKID_LOGLEVEL_INFO,
+  ROKID_LOGLEVEL_WARNING,
+  ROKID_LOGLEVEL_ERROR,
 
-	ROKID_LOGLEVEL_NUMBER,
+  ROKID_LOGLEVEL_NUMBER,
 } RokidLogLevel;
 
 typedef enum {
-	ROKID_LOG_CTL_ADD_ENDPOINT = 0,
-	ROKID_LOG_CTL_REMOVE_ENDPOINT,
-	ROKID_LOG_CTL_ASSOCIATE,
-	ROKID_LOG_CTL_DISASSOCIATE,
-	ROKID_LOG_CTL_DEFAULT_ENDPOINT,
+  ROKID_LOG_CTL_ADD_ENDPOINT = 0,
+  ROKID_LOG_CTL_REMOVE_ENDPOINT,
+  ROKID_LOG_CTL_ASSOCIATE,
+  ROKID_LOG_CTL_DISASSOCIATE,
+  ROKID_LOG_CTL_DEFAULT_ENDPOINT,
 } RokidLogControlOperation;
 
 typedef int32_t (*RokidLogWriter)(RokidLogLevel, const char* tag,
-		const char* fmt, va_list ap, void* arg_of_endpoint,
-		void* arg_of_association);
+    const char* fmt, va_list ap, void* arg_of_endpoint,
+    void* arg_of_association);
 
 typedef struct {
-	const char* name;
-	RokidLogWriter writer;
-	void* arg;
+  const char* name;
+  RokidLogWriter writer;
+  void* arg;
 } RokidLogEndpoint;
 
 typedef struct {
-	const char* tag;
-	const char* endpoint;
+  const char* tag;
+  const char* endpoint;
 } RokidLogAssociation;
 
 typedef struct {
-	const char* host;
-	int32_t port;
+  const char* host;
+  int32_t port;
 } TCPSocketArg;
 
 void rokid_log_print(RokidLogLevel lv, const char* tag, const char* fmt, ...);
