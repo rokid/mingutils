@@ -242,7 +242,8 @@ uint32_t CapsWriter::binary_size() const {
   // sub objects
   object_data_size = 0;
   for (i = 0; i < sub_objects.size(); ++i) {
-    object_data_size += sub_objects[i]->binary_size();
+    if (sub_objects[i].get())
+      object_data_size += sub_objects[i]->binary_size();
   }
   r += object_data_size;
   r += string_section_size;
