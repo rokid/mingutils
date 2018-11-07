@@ -22,7 +22,7 @@
 #define CAPS_MEMBER_TYPE_LONG 'l'
 #define CAPS_MEMBER_TYPE_DOUBLE 'd'
 #define CAPS_MEMBER_TYPE_STRING 'S'
-#define CAPS_MEMBER_TYPE_BINRAY 'B'
+#define CAPS_MEMBER_TYPE_BINARY 'B'
 #define CAPS_MEMBER_TYPE_OBJECT 'O'
 
 typedef intptr_t caps_t;
