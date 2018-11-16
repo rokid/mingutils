@@ -40,6 +40,8 @@ shared_ptr<Caps> Caps::convert(caps_t caps) {
 }
 
 caps_t Caps::convert(std::shared_ptr<Caps>& caps) {
+  if (caps.get() == nullptr)
+    return 0;
   if (caps->type() == CAPS_TYPE_WRITER) {
     CapsWriter* w = new CapsWriter();
     *w = *caps.get();
