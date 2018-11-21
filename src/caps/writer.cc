@@ -176,12 +176,20 @@ int32_t CapsWriter::write(int32_t v) {
   return CAPS_SUCCESS;
 }
 
+int32_t CapsWriter::write(uint32_t v) {
+  return write((int32_t)v);
+}
+
 int32_t CapsWriter::write(int64_t v) {
   LongMember* m = new LongMember();
   m->value = v;
   members.push_back(m);
   ++long_member_number;
   return CAPS_SUCCESS;
+}
+
+int32_t CapsWriter::write(uint64_t v) {
+  return write((int64_t)v);
 }
 
 int32_t CapsWriter::write(float v) {
@@ -209,6 +217,10 @@ int32_t CapsWriter::write(const char* v) {
   return CAPS_SUCCESS;
 }
 
+int32_t CapsWriter::write(const string& v) {
+  return write(v.c_str());
+}
+
 int32_t CapsWriter::write(const void* v, uint32_t l) {
   if (v == nullptr && l > 0)
     return CAPS_ERR_INVAL;
@@ -219,6 +231,10 @@ int32_t CapsWriter::write(const void* v, uint32_t l) {
   ++binary_object_member_number;
   binary_section_size += ALIGN4(l);
   return CAPS_SUCCESS;
+}
+
+int32_t CapsWriter::write(const vector<uint8_t>& v) {
+  return write(v.data(), v.size());
 }
 
 int32_t CapsWriter::write(shared_ptr<Caps>& v) {

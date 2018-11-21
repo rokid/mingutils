@@ -43,7 +43,7 @@ private:
 	std::vector<int64_t> longs;
 	std::vector<double> doubles;
 	std::vector<std::string> strings;
-	std::vector<std::string> binarys;
+	std::vector<std::vector<uint8_t> > binarys;
 	std::vector<RandomCapsFactory*> sub_objects;
 	std::shared_ptr<Caps> this_caps;
 	caps_t c_this_caps = 0;

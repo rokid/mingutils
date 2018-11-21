@@ -18,18 +18,26 @@ public:
 
   // override from 'Caps'
   int32_t write(int32_t v) { return CAPS_ERR_RDONLY; }
+  int32_t write(uint32_t v) { return CAPS_ERR_RDONLY; }
   int32_t write(float v) { return CAPS_ERR_RDONLY; }
   int32_t write(int64_t v) { return CAPS_ERR_RDONLY; }
+  int32_t write(uint64_t v) { return CAPS_ERR_RDONLY; }
   int32_t write(double v) { return CAPS_ERR_RDONLY; }
   int32_t write(const char* v) { return CAPS_ERR_RDONLY; }
+  int32_t write(const std::string& v) { return CAPS_ERR_RDONLY; }
   int32_t write(const void* v, uint32_t len) { return CAPS_ERR_RDONLY; }
+  int32_t write(const std::vector<uint8_t>& v) { return CAPS_ERR_RDONLY; }
   int32_t write(std::shared_ptr<Caps>& v) { return CAPS_ERR_RDONLY; }
   int32_t serialize(void* buf, uint32_t size) const { return CAPS_ERR_RDONLY; }
 
   int32_t read(int32_t& r);
+  int32_t read(uint32_t& r);
   int32_t read(float& r);
   int32_t read(int64_t& r);
+  int32_t read(uint64_t& r);
   int32_t read(double& r);
+  int32_t read(std::string& r);
+  int32_t read(std::vector<uint8_t>& r);
   int32_t read_string(std::string& r);
   int32_t read_binary(std::string& r);
   int32_t read(std::shared_ptr<Caps>& r);

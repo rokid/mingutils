@@ -126,6 +126,14 @@ int32_t CapsReader::read(int32_t& r) {
   return CAPS_SUCCESS;
 }
 
+int32_t CapsReader::read(uint32_t& r) {
+  int32_t i;
+  int32_t rt = read(i);
+  if (rt == CAPS_SUCCESS)
+    r = (uint32_t)i;
+  return rt;
+}
+
 int32_t CapsReader::read(float& r) {
   if (end_of_object())
     return CAPS_ERR_EOO;
@@ -146,6 +154,14 @@ int32_t CapsReader::read(int64_t& r) {
   ++long_values;
   ++current_read_member;
   return CAPS_SUCCESS;
+}
+
+int32_t CapsReader::read(uint64_t& r) {
+  int64_t i;
+  int32_t rt = read(i);
+  if (rt == CAPS_SUCCESS)
+    r = (uint64_t)i;
+  return rt;
 }
 
 int32_t CapsReader::read(double& r) {
@@ -183,7 +199,7 @@ int32_t CapsReader::read(const void*& r, uint32_t& length) {
   return CAPS_SUCCESS;
 }
 
-int32_t CapsReader::read_string(string& r) {
+int32_t CapsReader::read(string& r) {
   const char* s;
   int32_t code = read(s);
   if (code != CAPS_SUCCESS)
@@ -192,13 +208,28 @@ int32_t CapsReader::read_string(string& r) {
   return CAPS_SUCCESS;
 }
 
+int32_t CapsReader::read(vector<uint8_t>& r) {
+  const void* b;
+  uint32_t l;
+  int32_t code = read(b, l);
+  if (code != CAPS_SUCCESS)
+    return code;
+  r.resize(l);
+  memcpy(r.data(), b, l);
+  return CAPS_SUCCESS;
+}
+
+int32_t CapsReader::read_string(string& r) {
+  return read(r);
+}
+
 int32_t CapsReader::read_binary(string& r) {
   const void* b;
   uint32_t l;
   int32_t code = read(b, l);
   if (code != CAPS_SUCCESS)
     return code;
-  r.assign((const char*)b, l);
+  r.assign(reinterpret_cast<const char*>(b), l);
   return CAPS_SUCCESS;
 }
 

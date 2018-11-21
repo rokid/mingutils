@@ -116,7 +116,7 @@ void RandomCapsFactory::gen_binary() {
 	int32_t len = rand() % mod + MIN_BINARY_LENGTH;
 	int32_t i;
 	binarys.resize(binarys.size() + 1);
-	vector<string>::reverse_iterator it = binarys.rbegin();
+	vector<vector<uint8_t> >::reverse_iterator it = binarys.rbegin();
 	(*it).resize(len);
 	for (i = 0; i < len; ++i) {
 		(*it)[i] = random_byte();
@@ -125,7 +125,7 @@ void RandomCapsFactory::gen_binary() {
 	if (use_c_api)
 		caps_write_binary(c_this_caps, (*it).data(), len);
 	else
-		this_caps->write((*it).data(), len);
+		this_caps->write(*it);
 }
 
 void RandomCapsFactory::gen_object(uint32_t enable_sub_object) {
@@ -260,7 +260,7 @@ bool RandomCapsFactory::c_check(caps_t caps) {
 					r = -10005;
 					break;
 				}
-				if (Blen != binarys[cB].length()
+				if (Blen != binarys[cB].size()
 						|| memcmp(Bv, binarys[cB].data(), Blen)) {
 					r = -10005;
 				}
@@ -314,6 +314,12 @@ int32_t RandomCapsFactory::cpp_check() {
 	return b ? 0 : 1;
 }
 
+static bool binary_equal(vector<uint8_t>& b1, vector<uint8_t>& b2) {
+  if (b1.size() != b2.size())
+    return false;
+  return memcmp(b1.data(), b2.data(), b1.size()) == 0;
+}
+
 bool RandomCapsFactory::cpp_check(shared_ptr<Caps>& caps) {
 	int32_t ci = 0;
 	int32_t cl = 0;
@@ -327,7 +333,7 @@ bool RandomCapsFactory::cpp_check(shared_ptr<Caps>& caps) {
 	int64_t lv;
 	double dv;
 	string Sv;
-	string Bv;
+	vector<uint8_t> Bv;
 	shared_ptr<Caps> Ov;
 	int32_t i;
 	int32_t r = CAPS_SUCCESS;
@@ -360,14 +366,14 @@ bool RandomCapsFactory::cpp_check(shared_ptr<Caps>& caps) {
 				}
 				break;
 			case MEMBER_TYPE_STRING:
-				r = caps->read_string(Sv);
+				r = caps->read(Sv);
 				if (r != CAPS_SUCCESS || Sv != strings[cS++]) {
 					r = -10004;
 				}
 				break;
 			case MEMBER_TYPE_BINARY:
-				r = caps->read_binary(Bv);
-				if (r != CAPS_SUCCESS || Bv != binarys[cB++]) {
+				r = caps->read(Bv);
+				if (r != CAPS_SUCCESS || !binary_equal(Bv, binarys[cB++])) {
 					r = -10005;
 				}
 				break;

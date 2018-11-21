@@ -30,25 +30,38 @@ typedef intptr_t caps_t;
 #ifdef __cplusplus
 #include <memory>
 #include <string>
+#include <vector>
 
 class Caps {
 public:
   virtual ~Caps() = default;
 
   virtual int32_t write(int32_t v) = 0;
+  virtual int32_t write(uint32_t v) = 0;
   virtual int32_t write(float v) = 0;
   virtual int32_t write(int64_t v) = 0;
+  virtual int32_t write(uint64_t v) = 0;
   virtual int32_t write(double v) = 0;
   virtual int32_t write(const char* v) = 0;
+  virtual int32_t write(const std::string& v) = 0;
   virtual int32_t write(const void* v, uint32_t len) = 0;
+  // write binary data
+  virtual int32_t write(const std::vector<uint8_t>& v) = 0;
   virtual int32_t write(std::shared_ptr<Caps>& v) = 0;
   virtual int32_t serialize(void* buf, uint32_t size) const = 0;
 
   virtual int32_t read(int32_t& v) = 0;
+  virtual int32_t read(uint32_t& v) = 0;
   virtual int32_t read(float& v) = 0;
   virtual int32_t read(int64_t& v) = 0;
+  virtual int32_t read(uint64_t& v) = 0;
   virtual int32_t read(double& v) = 0;
+  virtual int32_t read(std::string& r) = 0;
+  // read binary data
+  virtual int32_t read(std::vector<uint8_t>& r) = 0;
+  // deprecated, replaced by read(std::string&)
   virtual int32_t read_string(std::string& r) = 0;
+  // deprecated, replaced by read(std::vector<uint8_t>&)
   virtual int32_t read_binary(std::string& r) = 0;
   virtual int32_t read(std::shared_ptr<Caps>& v) = 0;
   virtual int32_t next_type() const = 0;
