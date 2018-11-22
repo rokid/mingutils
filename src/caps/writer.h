@@ -39,6 +39,7 @@ public:
   int32_t read(double& v) { return CAPS_ERR_WRONLY; }
   int32_t read(const char*& v) { return CAPS_ERR_WRONLY; }
   int32_t read(std::string& v) { return CAPS_ERR_WRONLY; }
+  int32_t read(const void*& r, uint32_t& size) { return CAPS_ERR_WRONLY; }
   int32_t read(std::vector<uint8_t>& v) { return CAPS_ERR_WRONLY; }
   int32_t read_string(std::string& v) { return CAPS_ERR_WRONLY; }
   int32_t read_binary(std::string& v) { return CAPS_ERR_WRONLY; }

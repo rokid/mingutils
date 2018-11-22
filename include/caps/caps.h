@@ -62,6 +62,7 @@ public:
   virtual int32_t read(const char*& r) = 0;
   virtual int32_t read(std::string& r) = 0;
   // read binary data
+  virtual int32_t read(const void*& r, uint32_t& size) = 0;
   virtual int32_t read(std::vector<uint8_t>& r) = 0;
   // deprecated, replaced by read(std::string&)
   virtual int32_t read_string(std::string& r) = 0;
