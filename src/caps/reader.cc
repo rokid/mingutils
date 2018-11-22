@@ -1,10 +1,19 @@
 #include <string.h>
+#include <arpa/inet.h>
 #include "writer.h"
 #include "reader.h"
 
 using namespace std;
 
 namespace rokid {
+
+static int64_t caps_ntohll(int64_t v) {
+  int32_t num = 42;
+  if (*(char*)&num == 42) {
+    return ((((uint64_t)ntohl(v)) << 32) + ntohl((v) >> 32));
+  }
+  return v;
+}
 
 static void copy_from_reader(CapsReader* dst, const CapsReader* src) {
   const void* data = src->binary_data();
@@ -18,7 +27,7 @@ static void copy_from_writer(CapsReader* dst, const CapsWriter* src) {
   uint32_t size = src->binary_size();
   if (size > 0) {
     int8_t* data = new int8_t[size];
-    if (src->serialize(data, size) > 0) {
+    if (src->serialize(data, size, 0) > 0) {
       dst->parse(data, size, true);
     }
     delete[] data;
@@ -45,26 +54,24 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize, bool dup) {
 
   if (datasize <= sizeof(Header))
     return CAPS_ERR_INVAL;
-  if (duplicated && bin_data)
+  if (dup && bin_data)
     delete bin_data;
   if (dup) {
     bin_data = new int8_t[datasize];
     memcpy(const_cast<int8_t*>(bin_data), data, datasize);
-    duplicated = 1;
     b = reinterpret_cast<const int8_t*>(bin_data);
   } else {
-    duplicated = 0;
     b = reinterpret_cast<const int8_t*>(data);
     bin_data = b;
   }
+  duplicated = dup;
 
   header = reinterpret_cast<const Header*>(b);
-  if (header->length != datasize)
+  int32_t r = check_header(header, data_length);
+  if (r)
+    return r;
+  if (data_length != datasize)
     return CAPS_ERR_CORRUPTED;
-  if ((header->magic & (~VERSION_MASK)) != (MAGIC_NUM & (~VERSION_MASK)))
-    return CAPS_ERR_CORRUPTED;
-  if ((header->magic & VERSION_MASK) != CAPS_VERSION)
-    return CAPS_ERR_VERSION_UNSUPP;
 
   member_declarations = reinterpret_cast<const char*>(b + datasize);
   --member_declarations;
@@ -103,8 +110,13 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize, bool dup) {
   if (datasize < reinterpret_cast<const int8_t*>(binary_section) - b)
     return CAPS_ERR_CORRUPTED;
   uint32_t bin_sec_size = 0;
+  uint32_t bin_size;
   for (i = 0; i < num_bin; ++i) {
-    bin_sec_size += ALIGN4(bin_sizes[i]);
+    if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+      bin_size = ntohl(bin_sizes[i]);
+    else
+      bin_size = bin_sizes[i];
+    bin_sec_size += ALIGN4(bin_size);
   }
   string_section = reinterpret_cast<const char*>(binary_section + bin_sec_size);
   // TODO: 检查 string section 与 member declarations 不重叠
@@ -112,67 +124,59 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize, bool dup) {
 }
 
 uint32_t CapsReader::binary_size() const {
-  return bin_data ? header->length : 0;
+  return bin_data ? data_length : 0;
+}
+
+int32_t CapsReader::read32(int32_t* r, char type) {
+  if (end_of_object())
+    return CAPS_ERR_EOO;
+  if (current_member_type() != type)
+    return CAPS_ERR_INCORRECT_TYPE;
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    *r = ntohl(number_values[0]);
+  else
+    *r = number_values[0];
+  ++number_values;
+  ++current_read_member;
+  return CAPS_SUCCESS;
+}
+
+int32_t CapsReader::read64(int64_t* r, char type) {
+  if (end_of_object())
+    return CAPS_ERR_EOO;
+  if (current_member_type() != type)
+    return CAPS_ERR_INCORRECT_TYPE;
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    *r = caps_ntohll(long_values[0]);
+  else
+    *r = long_values[0];
+  ++long_values;
+  ++current_read_member;
+  return CAPS_SUCCESS;
 }
 
 int32_t CapsReader::read(int32_t& r) {
-  if (end_of_object())
-    return CAPS_ERR_EOO;
-  if (current_member_type() != 'i')
-    return CAPS_ERR_INCORRECT_TYPE;
-  r = number_values[0];
-  ++number_values;
-  ++current_read_member;
-  return CAPS_SUCCESS;
+  return read32(&r, 'i');
 }
 
 int32_t CapsReader::read(uint32_t& r) {
-  int32_t i;
-  int32_t rt = read(i);
-  if (rt == CAPS_SUCCESS)
-    r = (uint32_t)i;
-  return rt;
+  return read32(reinterpret_cast<int32_t*>(&r), 'i');
 }
 
 int32_t CapsReader::read(float& r) {
-  if (end_of_object())
-    return CAPS_ERR_EOO;
-  if (current_member_type() != 'f')
-    return CAPS_ERR_INCORRECT_TYPE;
-  memcpy(&r, number_values, sizeof(r));
-  ++number_values;
-  ++current_read_member;
-  return CAPS_SUCCESS;
+  return read32(reinterpret_cast<int32_t*>(&r), 'f');
 }
 
 int32_t CapsReader::read(int64_t& r) {
-  if (end_of_object())
-    return CAPS_ERR_EOO;
-  if (current_member_type() != 'l')
-    return CAPS_ERR_INCORRECT_TYPE;
-  r = long_values[0];
-  ++long_values;
-  ++current_read_member;
-  return CAPS_SUCCESS;
+  return read64(&r, 'l');
 }
 
 int32_t CapsReader::read(uint64_t& r) {
-  int64_t i;
-  int32_t rt = read(i);
-  if (rt == CAPS_SUCCESS)
-    r = (uint64_t)i;
-  return rt;
+  return read64(reinterpret_cast<int64_t*>(&r), 'l');
 }
 
 int32_t CapsReader::read(double& r) {
-  if (end_of_object())
-    return CAPS_ERR_EOO;
-  if (current_member_type() != 'd')
-    return CAPS_ERR_INCORRECT_TYPE;
-  memcpy(&r, long_values, sizeof(r));
-  ++long_values;
-  ++current_read_member;
-  return CAPS_SUCCESS;
+  return read64(reinterpret_cast<int64_t*>(&r), 'd');
 }
 
 int32_t CapsReader::read(const char*& r) {
@@ -192,7 +196,10 @@ int32_t CapsReader::read(const void*& r, uint32_t& length) {
   if (current_member_type() != 'B')
     return CAPS_ERR_INCORRECT_TYPE;
   r = binary_section;
-  length = bin_sizes[0];
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    length = ntohl(bin_sizes[0]);
+  else
+    length = bin_sizes[0];
   binary_section += ALIGN4(length);
   ++bin_sizes;
   ++current_read_member;
@@ -241,12 +248,16 @@ int32_t CapsReader::read(shared_ptr<Caps>& r) {
 
   shared_ptr<CapsReader> sub;
   int32_t code = CAPS_SUCCESS;
-  
-  if (bin_sizes[0] > 0) {
+  uint32_t bin_size;
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    bin_size = ntohl(bin_sizes[0]);
+  else
+    bin_size = bin_sizes[0];
+  if (bin_size > 0) {
     sub = make_shared<CapsReader>();
-    code = sub->parse(binary_section, bin_sizes[0], true);
+    code = sub->parse(binary_section, bin_size, true);
   }
-  binary_section += bin_sizes[0];
+  binary_section += bin_size;
   ++bin_sizes;
   ++current_read_member;
   r = static_pointer_cast<Caps>(sub);

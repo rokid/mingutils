@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define CAPS_VERSION 2
+#define CAPS_VERSION 3
 
 #define CAPS_SUCCESS 0
 #define CAPS_ERR_INVAL -1  // 参数非法
@@ -24,6 +24,8 @@
 #define CAPS_MEMBER_TYPE_STRING 'S'
 #define CAPS_MEMBER_TYPE_BINARY 'B'
 #define CAPS_MEMBER_TYPE_OBJECT 'O'
+
+#define CAPS_FLAG_NET_BYTEORDER 0x80
 
 typedef intptr_t caps_t;
 
@@ -48,7 +50,8 @@ public:
   // write binary data
   virtual int32_t write(const std::vector<uint8_t>& v) = 0;
   virtual int32_t write(std::shared_ptr<Caps>& v) = 0;
-  virtual int32_t serialize(void* buf, uint32_t size) const = 0;
+  virtual int32_t serialize(void* buf, uint32_t size,
+      uint32_t flags = CAPS_FLAG_NET_BYTEORDER) const = 0;
 
   virtual int32_t read(int32_t& v) = 0;
   virtual int32_t read(uint32_t& v) = 0;
@@ -56,6 +59,7 @@ public:
   virtual int32_t read(int64_t& v) = 0;
   virtual int32_t read(uint64_t& v) = 0;
   virtual int32_t read(double& v) = 0;
+  virtual int32_t read(const char*& r) = 0;
   virtual int32_t read(std::string& r) = 0;
   // read binary data
   virtual int32_t read(std::vector<uint8_t>& r) = 0;

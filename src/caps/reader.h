@@ -12,7 +12,7 @@ public:
 
   CapsReader& operator = (const Caps& o);
 
-  int32_t parse(const void* data, uint32_t datasize, bool duplicate);
+  int32_t parse(const void* data, uint32_t datasize, bool dup);
 
   inline const void* binary_data() const { return bin_data; }
 
@@ -28,7 +28,7 @@ public:
   int32_t write(const void* v, uint32_t len) { return CAPS_ERR_RDONLY; }
   int32_t write(const std::vector<uint8_t>& v) { return CAPS_ERR_RDONLY; }
   int32_t write(std::shared_ptr<Caps>& v) { return CAPS_ERR_RDONLY; }
-  int32_t serialize(void* buf, uint32_t size) const { return CAPS_ERR_RDONLY; }
+  int32_t serialize(void* buf, uint32_t size, uint32_t flags) const { return CAPS_ERR_RDONLY; }
 
   int32_t read(int32_t& r);
   int32_t read(uint32_t& r);
@@ -57,6 +57,10 @@ public:
   void rollback(const CapsReaderRecord& rec);
 
 private:
+  int32_t read32(int32_t* r, char type);
+  int32_t read64(int64_t* r, char type);
+
+private:
   const Header* header = nullptr;
   const char* member_declarations = nullptr;
   const int32_t* number_values = nullptr;
@@ -65,7 +69,8 @@ private:
   const int8_t* binary_section = nullptr;
   const char* string_section = nullptr;
   uint32_t current_read_member = 0;
-  int32_t duplicated = 0;
+  uint32_t data_length = 0;
+  bool duplicated = false;
 
   const int8_t* bin_data = nullptr;
 };

@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <string>
 #include "caps.h"
 #include "reader.h"
@@ -5,6 +6,27 @@
 
 using namespace std;
 using namespace rokid;
+
+namespace rokid {
+
+char CAPS_MAGIC[4] = { 0x1e, 'A', 'P', CAPS_VERSION };
+
+int32_t check_header(const Header* header, uint32_t& length) {
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    length = ntohl(header->length);
+  else
+    length = header->length;
+  if ((header->magic[0] & CAPS_MAGIC_MASK) != CAPS_MAGIC[0])
+    return CAPS_ERR_CORRUPTED;
+  if (header->magic[1] != CAPS_MAGIC[1]
+      || header->magic[2] != CAPS_MAGIC[2])
+    return CAPS_ERR_CORRUPTED;
+  if (header->magic[3] != CAPS_VERSION)
+    return CAPS_ERR_VERSION_UNSUPP;
+  return CAPS_SUCCESS;
+}
+
+} // namespace rokid
 
 shared_ptr<Caps> Caps::new_instance() {
   return make_shared<CapsWriter>();
@@ -56,13 +78,15 @@ int32_t Caps::binary_info(const void* data, uint32_t* version,
     uint32_t* length) {
   if (data == nullptr)
     return CAPS_ERR_INVAL;
-  const uint32_t* h = reinterpret_cast<const uint32_t*>(data);
-  if ((h[0] & (~VERSION_MASK)) != MAGIC_NUM)
-    return CAPS_ERR_CORRUPTED;
+  const Header* h = reinterpret_cast<const Header*>(data);
+  uint32_t data_length;
+  int32_t r = check_header(h, data_length);
+  if (r)
+    return r;
   if (version)
-    *version = h[0] & VERSION_MASK;
+    *version = h->magic[3];
   if (length)
-    *length = h[1];
+    *length = data_length;
   return CAPS_SUCCESS;
 }
 
@@ -87,7 +111,8 @@ int32_t caps_serialize(caps_t caps, void* buf, uint32_t bufsize) {
   Caps* writer = reinterpret_cast<Caps*>(caps);
   if (writer->type() != CAPS_TYPE_WRITER)
     return CAPS_ERR_RDONLY;
-  return static_cast<CapsWriter*>(writer)->serialize(buf, bufsize);
+  return static_cast<CapsWriter*>(writer)->serialize(buf, bufsize,
+      CAPS_FLAG_NET_BYTEORDER);
 }
 
 int32_t caps_write_integer(caps_t caps, int32_t v) {
@@ -228,7 +253,8 @@ void caps_destroy(caps_t caps) {
     delete reinterpret_cast<Caps*>(caps);
 }
 
-int32_t caps_binary_info(const void* data, uint32_t* version, uint32_t* length) {
+int32_t caps_binary_info(const void* data, uint32_t* version,
+    uint32_t* length) {
   return Caps::binary_info(data, version, length);
 }
 

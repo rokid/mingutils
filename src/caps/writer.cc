@@ -1,10 +1,19 @@
 #include <string.h>
+#include <arpa/inet.h>
 #include "writer.h"
 #include "reader.h"
 
 using namespace std;
 
 namespace rokid {
+
+static int64_t caps_htonll(int64_t v) {
+  int32_t num = 42;
+  if (*(char*)&num == 42) {
+    return ((((uint64_t)htonl(v)) << 32) + htonl((v) >> 32));
+  }
+  return v;
+}
 
 typedef struct {
   char* mdecls;
@@ -93,28 +102,40 @@ public:
 void IntegerMember::do_serialize(Header* header, WritePointer* wp) const {
   wp->mdecls[0] = 'i';
   --wp->mdecls;
-  wp->ivalues[0] = value;
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    wp->ivalues[0] = htonl(value);
+  else
+    wp->ivalues[0] = value;
   ++wp->ivalues;
 }
 
 void FloatMember::do_serialize(Header* header, WritePointer* wp) const {
   wp->mdecls[0] = 'f';
   --wp->mdecls;
-  memcpy(wp->ivalues, &value, sizeof(value));
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    wp->ivalues[0] = htonl(*((int32_t*)&value));
+  else
+    memcpy(wp->ivalues, &value, sizeof(value));
   ++wp->ivalues;
 }
 
 void LongMember::do_serialize(Header* header, WritePointer* wp) const {
   wp->mdecls[0] = 'l';
   --wp->mdecls;
-  wp->lvalues[0] = value;
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    wp->lvalues[0] = caps_htonll(value);
+  else
+    wp->lvalues[0] = value;
   ++wp->lvalues;
 }
 
 void DoubleMember::do_serialize(Header* header, WritePointer* wp) const {
   wp->mdecls[0] = 'd';
   --wp->mdecls;
-  memcpy(wp->lvalues, &value, sizeof(value));
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    wp->lvalues[0] = caps_htonll(*(int64_t*)(&value));
+  else
+    memcpy(wp->lvalues, &value, sizeof(value));
   ++wp->lvalues;
 }
 
@@ -128,7 +149,10 @@ void StringMember::do_serialize(Header* header, WritePointer* wp) const {
 void BinaryMember::do_serialize(Header* header, WritePointer* wp) const {
   wp->mdecls[0] = 'B';
   --wp->mdecls;
-  wp->bin_sizes[0] = value.length();
+  if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
+    wp->bin_sizes[0] = htonl(value.length());
+  else
+    wp->bin_sizes[0] = value.length();
   ++wp->bin_sizes;
   if (value.length() > 0) {
     memcpy(wp->bin_section + wp->cur_binp, value.data(), value.length());
@@ -138,6 +162,7 @@ void BinaryMember::do_serialize(Header* header, WritePointer* wp) const {
 
 void ObjectMember::do_serialize(Header* header, WritePointer* wp) const {
   int32_t obj_size;
+  uint32_t flags = header->magic[0] & CAPS_FLAG_NET_BYTEORDER;
 
   wp->mdecls[0] = 'O';
   --wp->mdecls;
@@ -147,12 +172,15 @@ void ObjectMember::do_serialize(Header* header, WritePointer* wp) const {
     obj_size = 0;
   if (value.get()) {
     if (value->type() == CAPS_TYPE_WRITER) {
-      static_pointer_cast<CapsWriter>(value)->serialize(wp->bin_section + wp->cur_binp, obj_size);
+      static_pointer_cast<CapsWriter>(value)->serialize(wp->bin_section + wp->cur_binp, obj_size, flags);
     } else {
       memcpy(wp->bin_section + wp->cur_binp, static_pointer_cast<CapsReader>(value)->binary_data(), obj_size);
     }
   }
-  wp->bin_sizes[0] = obj_size;
+  if (flags & CAPS_FLAG_NET_BYTEORDER)
+    wp->bin_sizes[0] = htonl(obj_size);
+  else
+    wp->bin_sizes[0] = obj_size;
   ++wp->bin_sizes;
   wp->cur_binp += ALIGN4(obj_size);
 }
@@ -267,7 +295,8 @@ uint32_t CapsWriter::binary_size() const {
   return ALIGN4(r);
 }
 
-int32_t CapsWriter::serialize(void* buf, uint32_t bufsize) const {
+int32_t CapsWriter::serialize(void* buf, uint32_t bufsize,
+    uint32_t flags) const {
   Header* header;
   WritePointer wp;
   uint32_t total_size = binary_size();
@@ -282,8 +311,13 @@ int32_t CapsWriter::serialize(void* buf, uint32_t bufsize) const {
   wp.str_section = reinterpret_cast<char*>(wp.bin_section + binary_section_size + object_data_size);
   wp.mdecls = reinterpret_cast<char*>(buf) + total_size - 1;
 
-  header->magic = MAGIC_NUM | CAPS_VERSION;
-  header->length = total_size;
+  memcpy(header->magic, CAPS_MAGIC, sizeof(CAPS_MAGIC));
+  if (flags & CAPS_FLAG_NET_BYTEORDER) {
+    header->magic[0] |= CAPS_FLAG_NET_BYTEORDER;
+    header->length = htonl(total_size);
+  } else {
+    header->length = total_size;
+  }
   wp.mdecls[0] = members.size();
   --wp.mdecls;
 

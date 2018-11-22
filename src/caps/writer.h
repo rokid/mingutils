@@ -29,7 +29,7 @@ public:
   int32_t write(const void* v, uint32_t l);
   int32_t write(const std::vector<uint8_t>& v);
   int32_t write(std::shared_ptr<Caps>& v);
-  int32_t serialize(void* buf, uint32_t bufsize) const;
+  int32_t serialize(void* buf, uint32_t bufsize, uint32_t flags) const;
 
   int32_t read(int32_t& v) { return CAPS_ERR_WRONLY; }
   int32_t read(uint32_t& v) { return CAPS_ERR_WRONLY; }
@@ -37,6 +37,7 @@ public:
   int32_t read(int64_t& v) { return CAPS_ERR_WRONLY; }
   int32_t read(uint64_t& v) { return CAPS_ERR_WRONLY; }
   int32_t read(double& v) { return CAPS_ERR_WRONLY; }
+  int32_t read(const char*& v) { return CAPS_ERR_WRONLY; }
   int32_t read(std::string& v) { return CAPS_ERR_WRONLY; }
   int32_t read(std::vector<uint8_t>& v) { return CAPS_ERR_WRONLY; }
   int32_t read_string(std::string& v) { return CAPS_ERR_WRONLY; }
