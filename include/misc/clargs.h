@@ -4,6 +4,31 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <memory>
+
+class CLPair {
+public:
+  const char* key = nullptr;
+  const char* value = nullptr;
+
+  bool match(const char* key) const;
+
+  bool to_integer(int32_t& res) const;
+};
+
+class CLArgs {
+public:
+  static std::shared_ptr<CLArgs> parse(int32_t argc, char** argv);
+
+  virtual uint32_t size() const = 0;
+
+  virtual const CLPair& operator[](uint32_t idx) const = 0;
+
+  virtual const CLPair& at(uint32_t idx) const = 0;
+
+  virtual bool has(const char* key) const = 0;
+};
+
 extern "C" {
 #endif
 
@@ -16,30 +41,18 @@ clargs_h clargs_parse(int32_t argc, char** argv);
 // 销毁句柄
 void clargs_destroy(clargs_h handle);
 
-// 遍历命令行选项参数
-// 获取下一条命令行选项的key和value
-// return:   0   success
-//           -1  'handle' is invalid
-//           -2  遍历已经完成，没有下一个选项了
-int32_t clargs_opt_next(clargs_h handle, const char** key, const char** value);
+// 获取命令行参数对数量
+// clargs_get下标参数idx必须小于本函数返回的值
+uint32_t clargs_size(clargs_h handle);
 
-// 遍历命令行非选项参数
-int32_t clargs_arg_next(clargs_h handle, const char** arg);
+// 获取指定下标的命令行参数key/value
+// 成功返回0，下标idx超出范围则返回-1
+int32_t clargs_get(clargs_h handle, uint32_t idx, const char** key, const char** value);
 
-// 根据key值获取命令行选项参数的value
-// 如--foo=bar    key为foo，value为bar
-//   -x           key为x，value为零长度字符串
-const char* clargs_opt_get(clargs_h handle, const char* key);
-
-// 判断命令行选项参数是否存在
-// 存在返回1，不存在返回0
-// 如-abc        key为a的选项存在
-//               key为b的选项存在
-//               key为c的选项存在
-//               key为d的选项不存在
-//   --foo=bar   key为foo的选项存在
-//   --abc       key为abc的选项存在
-int32_t clargs_opt_has(clargs_h handle, const char* key);
+// 获取指定下标的命令行参数key/value
+// value转为整数值
+// 成功返回0，下标idx超出范围则返回-1，value字符串无法转为合法整数值则返回-2
+int32_t clargs_get_integer(clargs_h handle, uint32_t idx, const char** key, int32_t* res);
 
 #ifdef __cplusplus
 }
