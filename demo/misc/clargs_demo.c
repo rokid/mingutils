@@ -1,9 +1,6 @@
 #include <string.h>
 #include <stdio.h>
-#include <memory>
 #include "clargs.h"
-
-using namespace std;
 
 typedef struct {
 	int argc;
@@ -39,26 +36,33 @@ const char* visible_string(int c, char** v) {
 	return buf;
 }
 
-void display_parse_result(shared_ptr<CLArgs>& handle) {
+void display_parse_result(clargs_h handle) {
 	const char* key;
 	const char* value;
-  uint32_t i;
-  uint32_t size = handle->size();
 
-	printf("[pairs key value]\n");
-  for (i = 0; i < size; ++i) {
-		printf("\t%s: %s\n", (*handle)[i].key, (*handle)[i].value);
+	printf("[options]\n");
+	while (1) {
+		if (clargs_opt_next(handle, &key, &value))
+			break;
+		printf("\t%s: %s\n", key, value);
+	}
+
+	printf("[args]\n");
+	while (1) {
+		if (clargs_arg_next(handle, &value))
+			break;
+		printf("\t%s\n", value);
 	}
 }
 
 int main(int argc, char** argv) {
 	size_t count = sizeof(test_args) / sizeof(CmdLineArgs);
 	size_t i;
-  shared_ptr<CLArgs> handle;
+	clargs_h handle;
 
 	for (i = 0; i < count; ++i) {
-		handle = CLArgs::parse(test_args[i].argc, test_args[i].argv);
-		if (handle == nullptr) {
+		handle = clargs_parse(test_args[i].argc, test_args[i].argv);
+		if (handle == 0) {
 			printf("parse %s failed.\n", visible_string(test_args[i].argc, test_args[i].argv));
 			break;
 		}
