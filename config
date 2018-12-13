@@ -12,6 +12,7 @@ Configuration:
     --build-dir=DIR             build directory
     --prefix=PREFIX             install prefix
     --cmake-modules=DIR         directory of cmake modules file exist
+    --use-gcc                   force use gcc compiler (in macosx)
 
 Cross Compile:
     --toolchain=DIR             toolchain install dir
@@ -50,6 +51,9 @@ do
 		--cmake-modules=*)
 			cmake_modules_dir=$conf_optarg
 			;;
+    --use-gcc)
+      CMAKE_ARGS=(${CMAKE_ARGS[@]} -DUSE_GCC=ON)
+      ;;
 		--toolchain=*)
 			CMAKE_ARGS=(${CMAKE_ARGS[@]} -DTOOLCHAIN_HOME=$conf_optarg)
 			CROSS_COMPILE=yes
