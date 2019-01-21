@@ -154,4 +154,10 @@ set(tcp_rlogcat_src_files
 	demo/log/tcp-rlogcat.cc
 )
 add_executable(tcp-rlogcat ${tcp_rlogcat_src_files})
+add_executable(heapsort-demo
+  demo/misc/heapsort_demo.cc
+)
+target_include_directories(heapsort-demo PRIVATE
+  include/misc
+)
 endif(BUILD_DEMO)
