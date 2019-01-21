@@ -8,8 +8,9 @@
 
 class CLPair {
 public:
-  const char* key = nullptr;
-  const char* value = nullptr;
+  const char* key;
+
+  const char* value;
 
   bool match(const char* key) const;
 
@@ -22,11 +23,9 @@ public:
 
   virtual uint32_t size() const = 0;
 
-  virtual const CLPair& operator[](uint32_t idx) const = 0;
+  virtual const CLPair& at(uint32_t idx, CLPair &res) const = 0;
 
-  virtual const CLPair& at(uint32_t idx) const = 0;
-
-  virtual bool has(const char* key) const = 0;
+  virtual bool find(const char* key, uint32_t *begin, uint32_t *end) const = 0;
 };
 
 extern "C" {

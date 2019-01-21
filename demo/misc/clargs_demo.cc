@@ -45,9 +45,10 @@ void display_parse_result(shared_ptr<CLArgs>& handle) {
   uint32_t i;
   uint32_t size = handle->size();
 
+  CLPair pair;
 	printf("[pairs key value]\n");
   for (i = 0; i < size; ++i) {
-		printf("\t%s: %s\n", (*handle)[i].key, (*handle)[i].value);
+		printf("\t%s: %s\n", handle->at(i, pair).key, handle->at(i, pair).value);
 	}
 }
 
