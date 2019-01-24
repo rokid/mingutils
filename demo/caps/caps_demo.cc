@@ -29,27 +29,36 @@ static void print_prompt(const char* progname) {
 		"options:\n"
 		"\t--help        打印此帮助信息\n"
 		"\t--repeat=*    测试重复次数\n"
-		"\t--use-c-api   使用c接口";
+		"\t--use-c-api   使用c接口\n";
 	printf(form, progname);
 }
 
 int main(int argc, char** argv) {
 	// parse arguments
 	clargs_h h = clargs_parse(argc, argv);
-	if (h == 0 || clargs_opt_has(h, "help")) {
-		print_prompt(argv[0]);
-		clargs_destroy(h);
-		return 1;
-	}
-	const char* v = clargs_opt_get(h, "repeat");
+  uint32_t clsize = clargs_size(h);
+  uint32_t cl_i;
+  const char* clkey;
+  const char* clvalue;
 	int32_t repeat = 1;
-	if (v) {
-		char* ep;
-		repeat = strtol(v, &ep, 10);
-		if (repeat <= 0)
-			repeat = 1;
-	}
-	bool use_c_api = clargs_opt_has(h, "use-c-api");
+  bool use_c_api = false;
+  for (cl_i = 0; cl_i < clsize; ++cl_i) {
+    clargs_get(h, cl_i, &clkey, &clvalue);
+    if (clkey && strcmp(clkey, "help") == 0) {
+      print_prompt(argv[0]);
+      clargs_destroy(h);
+      return 1;
+    }
+    if (clkey && strcmp(clkey, "repeat") == 0) {
+      int32_t r = clargs_get_integer(h, cl_i, &clkey, &repeat);
+      if (r < 0)
+        repeat = 1;
+      if (repeat <= 0)
+        repeat = 1;
+    }
+    if (clkey && strcmp(clkey, "use-c-api") == 0)
+      use_c_api = true;
+  }
 	clargs_destroy(h);
 
 	// rand init

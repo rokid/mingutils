@@ -97,12 +97,17 @@ install (TARGETS rlog misc caps
 # build demo
 if (BUILD_DEMO)
 set(clargs_demo_src_files
-	demo/misc/clargs_demo.c
+	demo/misc/clargs_demo.cc
 )
 add_executable (clargs_demo ${clargs_demo_src_files})
 target_link_libraries (clargs_demo
 	misc
 )
+if (COMPILER_IS_CLANG)
+  target_compile_options(clargs_demo PRIVATE -Wno-writable-strings)
+else()
+  target_compile_options(clargs_demo PRIVATE -Wno-write-strings)
+endif()
 
 set(vq_demo_src_files
 	demo/misc/vq_demo.cc
@@ -149,4 +154,10 @@ set(tcp_rlogcat_src_files
 	demo/log/tcp-rlogcat.cc
 )
 add_executable(tcp-rlogcat ${tcp_rlogcat_src_files})
+add_executable(heapsort-demo
+  demo/misc/heapsort_demo.cc
+)
+target_include_directories(heapsort-demo PRIVATE
+  include/misc
+)
 endif(BUILD_DEMO)
