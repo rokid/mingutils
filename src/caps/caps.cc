@@ -11,6 +11,10 @@ namespace rokid {
 
 char CAPS_MAGIC[4] = { 0x1e, 'A', 'P', CAPS_VERSION };
 
+bool check_version(uint8_t version) {
+  return version > 2 && version <= CAPS_VERSION;
+}
+
 int32_t check_header(const Header* header, uint32_t& length) {
   if (header->magic[0] & CAPS_FLAG_NET_BYTEORDER)
     length = ntohl(header->length);
@@ -21,7 +25,7 @@ int32_t check_header(const Header* header, uint32_t& length) {
   if (header->magic[1] != CAPS_MAGIC[1]
       || header->magic[2] != CAPS_MAGIC[2])
     return CAPS_ERR_CORRUPTED;
-  if (header->magic[3] != CAPS_VERSION)
+  if (!check_version(header->magic[3]))
     return CAPS_ERR_VERSION_UNSUPP;
   return CAPS_SUCCESS;
 }
@@ -182,6 +186,12 @@ int32_t caps_write_object(caps_t caps, caps_t v) {
   return CAPS_SUCCESS;
 }
 
+int32_t caps_write_void(caps_t caps) {
+  if (caps == 0)
+    return CAPS_ERR_INVAL;
+  return reinterpret_cast<Caps*>(caps)->write();
+}
+
 int32_t caps_read_integer(caps_t caps, int32_t* r) {
   if (caps == 0 || r == nullptr)
     return CAPS_ERR_INVAL;
@@ -246,6 +256,12 @@ int32_t caps_read_object(caps_t caps, caps_t* r) {
   }
   *r = reinterpret_cast<caps_t>(sub);
   return CAPS_SUCCESS;
+}
+
+int32_t caps_read_void(caps_t caps) {
+  if (caps == 0)
+    return CAPS_ERR_INVAL;
+  return reinterpret_cast<Caps*>(caps)->read();
 }
 
 void caps_destroy(caps_t caps) {
