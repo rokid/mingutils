@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define CAPS_VERSION 3
+#define CAPS_VERSION 4
 
 #define CAPS_SUCCESS 0
 #define CAPS_ERR_INVAL -1  // 参数非法
@@ -24,6 +24,7 @@
 #define CAPS_MEMBER_TYPE_STRING 'S'
 #define CAPS_MEMBER_TYPE_BINARY 'B'
 #define CAPS_MEMBER_TYPE_OBJECT 'O'
+#define CAPS_MEMBER_TYPE_VOID 'V'
 
 #define CAPS_FLAG_NET_BYTEORDER 0x80
 
@@ -75,6 +76,10 @@ public:
   virtual uint32_t binary_size() const = 0;
   virtual uint32_t size() const = 0;
 
+  // read/write void type
+  virtual int32_t write() = 0;
+  virtual int32_t read() = 0;
+
   // create WRONLY Caps
   static std::shared_ptr<Caps> new_instance();
 
@@ -117,6 +122,8 @@ int32_t caps_write_binary(caps_t caps, const void* data, uint32_t length);
 
 int32_t caps_write_object(caps_t caps, caps_t v);
 
+int32_t caps_write_void(caps_t caps);
+
 int32_t caps_read_integer(caps_t caps, int32_t* r);
 
 int32_t caps_read_long(caps_t caps, int64_t* r);
@@ -130,6 +137,8 @@ int32_t caps_read_string(caps_t caps, const char** r);
 int32_t caps_read_binary(caps_t caps, const void** r, uint32_t* length);
 
 int32_t caps_read_object(caps_t caps, caps_t* r);
+
+int32_t caps_read_void(caps_t caps);
 
 void caps_destroy(caps_t caps);
 

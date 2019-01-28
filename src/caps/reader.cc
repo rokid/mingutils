@@ -99,6 +99,8 @@ int32_t CapsReader::parse(const void* data, uint32_t datasize, bool dup) {
         ++num_bin;
         ++num_obj;
         break;
+      case 'V':
+        break;
       default:
         return CAPS_ERR_CORRUPTED;
     }
@@ -262,6 +264,15 @@ int32_t CapsReader::read(shared_ptr<Caps>& r) {
   ++current_read_member;
   r = static_pointer_cast<Caps>(sub);
   return code;
+}
+
+int32_t CapsReader::read() {
+  if (end_of_object())
+    return CAPS_ERR_EOO;
+  if (current_member_type() != 'V')
+    return CAPS_ERR_INCORRECT_TYPE;
+  ++current_read_member;
+  return CAPS_SUCCESS;
 }
 
 CapsReader::~CapsReader() noexcept {

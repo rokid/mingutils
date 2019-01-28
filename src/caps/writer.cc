@@ -99,6 +99,16 @@ public:
   shared_ptr<Caps> value;
 };
 
+class VoidMember : public Member {
+public:
+  void do_serialize(Header* header, WritePointer* wp) const {
+    wp->mdecls[0] = 'V';
+    --wp->mdecls;
+  }
+
+  char type() const { return 'V'; }
+};
+
 void IntegerMember::do_serialize(Header* header, WritePointer* wp) const {
   wp->mdecls[0] = 'i';
   --wp->mdecls;
@@ -274,6 +284,12 @@ int32_t CapsWriter::write(shared_ptr<Caps>& v) {
   return CAPS_SUCCESS;
 }
 
+int32_t CapsWriter::write() {
+  VoidMember* m = new VoidMember();
+  members.push_back(m);
+  return CAPS_SUCCESS;
+}
+
 uint32_t CapsWriter::binary_size() const {
   uint32_t r;
   size_t i;
@@ -371,6 +387,10 @@ static void copy_from_reader(CapsWriter* dst, const CapsReader* src) {
         msrc->read(cv);
         dst->write(cv);
         break;
+      case 'V':
+        msrc->read();
+        dst->write();
+        break;
     }
   }
   msrc->rollback(rec);
@@ -405,6 +425,9 @@ void CapsWriter::copy_from_writer(CapsWriter* dst, const CapsWriter* src) {
         break;
       case 'O':
         dst->write(static_cast<ObjectMember*>(m)->value);
+        break;
+      case 'V':
+        dst->write();
         break;
     }
   }

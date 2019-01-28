@@ -28,6 +28,7 @@ public:
   int32_t write(const void* v, uint32_t len) { return CAPS_ERR_RDONLY; }
   int32_t write(const std::vector<uint8_t>& v) { return CAPS_ERR_RDONLY; }
   int32_t write(std::shared_ptr<Caps>& v) { return CAPS_ERR_RDONLY; }
+  int32_t write() { return CAPS_ERR_RDONLY; }
   int32_t serialize(void* buf, uint32_t size, uint32_t flags) const { return CAPS_ERR_RDONLY; }
 
   int32_t read(int32_t& r);
@@ -41,6 +42,7 @@ public:
   int32_t read_string(std::string& r);
   int32_t read_binary(std::string& r);
   int32_t read(std::shared_ptr<Caps>& r);
+  int32_t read();
   int32_t next_type() const;
 
   // read string & binary without memcpy
