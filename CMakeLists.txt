@@ -162,4 +162,8 @@ add_executable(heapsort-demo
 target_include_directories(heapsort-demo PRIVATE
   include/misc
 )
+add_executable(thr-pool-demo demo/misc/thr-pool-demo.cc)
+target_include_directories(thr-pool-demo PRIVATE
+  include/misc
+)
 endif(BUILD_DEMO)
