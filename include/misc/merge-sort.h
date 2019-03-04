@@ -20,6 +20,8 @@ public:
       doMergeWithWidth(arrayList, arraySize, width);
       width <<= 1;
     }
+
+    release();
   }
 
 private:
@@ -30,6 +32,10 @@ private:
     }
     if (arraySize)
       swapSpace = new IT[arraySize];
+  }
+
+  void release() {
+    delete[] swapSpace;
   }
 
   static T *spliceArray(T *&arr, uint32_t &size, uint32_t width, uint32_t &rs) {
