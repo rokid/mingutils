@@ -44,7 +44,8 @@ public:
 
 class RLog {
 public:
-  static void print(RokidLogLevel lv, const char* tag, const char* fmt, ...);
+  static void print(const char *file, int line, RokidLogLevel lv,
+                    const char* tag, const char* fmt, ...);
 
   static int32_t add_endpoint(const char* name, RLogWriter* writer);
 
@@ -70,6 +71,9 @@ typedef struct {
   RokidLogWrite write;
 } RokidLogWriter;
 
+void rokid_log_print(const char *file, int line, RokidLogLevel lv,
+                     const char* tag, const char* fmt, ...);
+
 int32_t rokid_log_add_endpoint(const char *name, RokidLogWriter *writer, void *arg);
 
 int32_t rokid_log_add_builtin_endpoint(const char *name, RokidBuiltinLogWriter type);
@@ -87,37 +91,37 @@ int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, bool enable)
 #endif
 
 #ifdef __cplusplus
-#define rokid_log_print RLog::print
+#define RLOG_PRINT(lv, tag, fmt, ...)  RLog::print(__FILE__, __LINE__, lv, tag, fmt, ##__VA_ARGS__)
 #else
-extern "C" void rokid_log_print(RokidLogLevel lv, const char* tag, const char* fmt, ...);
+#define RLOG_PRINT(lv, tag, fmt, ...)  RLog::print(__FILE__, __LINE__, lv, tag, fmt, ##__VA_ARGS__)
 #endif
 
 #if ROKID_LOG_ENABLED <= 0
-#define KLOGV(tag, fmt, ...) rokid_log_print(ROKID_LOGLEVEL_VERBOSE, tag, fmt, ##__VA_ARGS__)
+#define KLOGV(tag, fmt, ...) RLOG_PRINT(ROKID_LOGLEVEL_VERBOSE, tag, fmt, ##__VA_ARGS__)
 #else
 #define KLOGV(tag, fmt, ...)
 #endif
 
 #if ROKID_LOG_ENABLED <= 1
-#define KLOGD(tag, fmt, ...) rokid_log_print(ROKID_LOGLEVEL_DEBUG, tag, fmt, ##__VA_ARGS__)
+#define KLOGD(tag, fmt, ...) RLOG_PRINT(ROKID_LOGLEVEL_DEBUG, tag, fmt, ##__VA_ARGS__)
 #else
 #define KLOGD(tag, fmt, ...)
 #endif
 
 #if ROKID_LOG_ENABLED <= 2
-#define KLOGI(tag, fmt, ...) rokid_log_print(ROKID_LOGLEVEL_INFO, tag, fmt, ##__VA_ARGS__)
+#define KLOGI(tag, fmt, ...) RLOG_PRINT(ROKID_LOGLEVEL_INFO, tag, fmt, ##__VA_ARGS__)
 #else
 #define KLOGI(tag, fmt, ...)
 #endif
 
 #if ROKID_LOG_ENABLED <= 3
-#define KLOGW(tag, fmt, ...) rokid_log_print(ROKID_LOGLEVEL_WARNING, tag, fmt, ##__VA_ARGS__)
+#define KLOGW(tag, fmt, ...) RLOG_PRINT(ROKID_LOGLEVEL_WARNING, tag, fmt, ##__VA_ARGS__)
 #else
 #define KLOGW(tag, fmt, ...)
 #endif
 
 #if ROKID_LOG_ENABLED <= 4
-#define KLOGE(tag, fmt, ...) rokid_log_print(ROKID_LOGLEVEL_ERROR, tag, fmt, ##__VA_ARGS__)
+#define KLOGE(tag, fmt, ...) RLOG_PRINT(ROKID_LOGLEVEL_ERROR, tag, fmt, ##__VA_ARGS__)
 #else
 #define KLOGE(tag, fmt, ...)
 #endif

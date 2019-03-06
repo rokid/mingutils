@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <stdarg.h>
+#include <libgen.h>
 #include <string>
 #include <map>
 #include "rlog.h"
@@ -89,10 +90,12 @@ public:
     return 0;
   }
 
-  void print(RokidLogLevel lv, const char* tag, const char* fmt, va_list ap) {
+  void print(const char *file, int line, RokidLogLevel lv,
+             const char* tag, const char* fmt, va_list ap) {
     if (tag == nullptr || fmt == nullptr)
       return;
-    uint32_t c = format_string(buffer, bufsize, lv, tag, fmt, ap);
+    uint32_t c = format_string(buffer, bufsize, file, line, lv, tag,
+                               fmt, ap);
 
     writer_mutex.lock();
     auto it = enabled_writers.begin();
@@ -105,13 +108,16 @@ public:
 
 private:
   static uint32_t format_string(char *out, uint32_t maxout,
+                                const char *file, int line,
                                 RokidLogLevel lv, const char *tag,
                                 const char *fmt, va_list ap) {
-    int off = snprintf(out, maxout, "%s/%c  [", tag,
-                       loglevel2char(lv));
+    int off = snprintf(out, maxout, "%s/%c <%d> [", tag,
+                       loglevel2char(lv), getpid());
     off += format_timestamp(out + off, maxout - off);
-    off += snprintf(out + off, maxout - off, "]  ");
-    off += vsnprintf(out + off, maxout - off, fmt, ap);
+    off += snprintf(out + off, maxout - off, "] (%s:%d)  ",
+                    basename((char *)file), line);
+    if (off < maxout)
+      off += vsnprintf(out + off, maxout - off, fmt, ap);
     if (off >= maxout)
       off = maxout - 1;
     out[off] = '\n';
@@ -201,10 +207,20 @@ int32_t RLog::enable_endpoint(const char* name, void* init_arg,
   return rlog_inst_.enable_endpoint(name, init_arg, enable);
 }
 
-void RLog::print(RokidLogLevel lv, const char* tag, const char* fmt, ...) {
+void RLog::print(const char *file, int line,
+                 RokidLogLevel lv, const char* tag,
+                 const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  rlog_inst_.print(lv, tag, fmt, ap);
+  rlog_inst_.print(file, line, lv, tag, fmt, ap);
+  va_end(ap);
+}
+
+void rokid_log_print(const char *file, int line, RokidLogLevel lv,
+                     const char* tag, const char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  rlog_inst_.print(file, line, lv, tag, fmt, ap);
   va_end(ap);
 }
 
