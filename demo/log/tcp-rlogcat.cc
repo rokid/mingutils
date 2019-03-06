@@ -9,13 +9,18 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
+  if (argc < 2) {
+    printf("USAGE: %s PORT\n", argv[0]);
+    return 1;
+  }
+
 	int fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (fd < 0)
 		return -1;
 	struct sockaddr_in addr;
 	struct hostent* hp;
 	const char* host = "localhost";
-	int32_t port = 7777;
+	int32_t port = atoi(argv[1]);
 	if (argc >= 2) {
 		int n = atoi(argv[1]);
 		if (n > 0)
