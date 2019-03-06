@@ -35,6 +35,7 @@ public:
   }
 
   ~RLogInst() {
+    clear_writers();
     if (buffer)
       munmap(buffer, bufsize);
   }
@@ -136,6 +137,19 @@ private:
     if (lv < ROKID_LOGLEVEL_VERBOSE || lv >= ROKID_LOGLEVEL_NUMBER)
       return 'U';
     return level_chars[lv];
+  }
+
+  void clear_writers() {
+    enabled_writers.clear();
+    auto it = writers.begin();
+    while (it != writers.end()) {
+      if (it->second.flags & WRITER_FLAG_ENABLED)
+        it->second.writer->destroy();
+      if (it->second.flags & WRITER_FLAG_AUTOPTR)
+        delete it->second.writer;
+      ++it;
+    }
+    writers.clear();
   }
 
 private:
