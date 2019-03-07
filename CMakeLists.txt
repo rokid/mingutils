@@ -4,7 +4,7 @@ set(VERSION 0.1)
 
 # CMake policies: enable MACOSX_RPATH by default
 if(POLICY CMP0042)
-	cmake_policy(SET CMP0042 NEW)
+  cmake_policy(SET CMP0042 NEW)
 endif()
 
 option(USE_GCC "force use gcc" OFF)
@@ -15,93 +15,95 @@ endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
   set(COMPILER_IS_CLANG true)
 else()
-	set(COMPILER_IS_CLANG false)
+  set(COMPILER_IS_CLANG false)
 endif()
 
 option(BUILD_DEBUG "debug or release" OFF)
 option(BUILD_DEMO "build demo" OFF)
 
 if (BUILD_DEBUG)
-	set (common_cflags "-g -O0")
-	set (common_cxxflags "-g -O0")
+  set (common_cflags "-g -O0")
+  set (common_cxxflags "-g -O0")
 else()
-	set (common_cflags -O3)
-	set (common_cxxflags -O3)
-	set (common_ldflags -s)
+  set (common_cflags -O3)
+  set (common_cxxflags -O3)
+  set (common_ldflags -s)
 endif()
 if (NOT ${COMPILER_IS_CLANG})
-	set (common_ldflags "${common_ldflags} -pthread")
+  set (common_ldflags "${common_ldflags} -pthread")
 endif()
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${common_cflags}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${common_cxxflags}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
 set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
 
+# target 'misc'
+file(GLOB misc_src_files
+  include/misc/*.h
+  src/misc/*.cc
+)
+add_library(misc STATIC
+  ${misc_src_files}
+)
+target_include_directories(misc PUBLIC
+  include/misc
+)
+target_compile_options(misc PRIVATE
+  -fPIC
+)
+install(DIRECTORY include/misc
+  DESTINATION include
+)
+
 # rlog src files
 file (GLOB_RECURSE rlog_src_files
-	src/log/*.h
-	src/log/*.c
-	include/log/*.h
+  src/log/*.h
+  src/log/*.cc
+  include/log/*.h
 )
 
 add_library (rlog SHARED
-	${rlog_src_files}
+  ${rlog_src_files}
 )
 target_include_directories (rlog PUBLIC
-	include/log
+  include/log
+  include/misc
 )
 target_link_libraries (rlog
+  misc
 )
 install (DIRECTORY include/log
-	DESTINATION include
-)
-
-# target 'misc'
-file(GLOB misc_src_files
-	include/misc/*.h
-	src/misc/*.cc
-)
-add_library(misc STATIC
-	${misc_src_files}
-)
-target_include_directories(misc PUBLIC
-	include/misc
-)
-target_compile_options(misc PRIVATE
-	-fPIC
-)
-install(DIRECTORY include/misc
-	DESTINATION include
+  DESTINATION include
 )
 
 # target 'caps'
 file(GLOB caps_src_files
-	include/caps/*.h
-	src/caps/*.cc
+  include/caps/*.h
+  src/caps/*.cc
 )
 add_library(caps SHARED
-	${caps_src_files}
+  ${caps_src_files}
 )
 target_include_directories(caps PUBLIC
-	include/caps
+  include/caps
 )
 install(DIRECTORY include/caps
-	DESTINATION include
+  DESTINATION include
 )
 
 # install targets
 install (TARGETS rlog misc caps
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
 )
 # build demo
 if (BUILD_DEMO)
 set(clargs_demo_src_files
-	demo/misc/clargs_demo.cc
+  demo/misc/clargs_demo.cc
 )
 add_executable (clargs_demo ${clargs_demo_src_files})
 target_link_libraries (clargs_demo
-	misc
+  misc
 )
 if (COMPILER_IS_CLANG)
   target_compile_options(clargs_demo PRIVATE -Wno-writable-strings)
@@ -110,48 +112,48 @@ else()
 endif()
 
 set(vq_demo_src_files
-	demo/misc/vq_demo.cc
+  demo/misc/vq_demo.cc
 )
 add_executable (vq_demo ${vq_demo_src_files})
 target_link_libraries (vq_demo
-	misc
+  misc
 )
 
 set(uri_demo_src_files
-	demo/misc/uri_demo.cc
+  demo/misc/uri_demo.cc
 )
 add_executable (uri_demo ${uri_demo_src_files})
 target_link_libraries (uri_demo
-	misc
+  misc
 )
 
 set(caps_demo_src_files
-	demo/caps/caps_demo.cc
-	demo/caps/random_caps_factory.cc
-	demo/caps/random_caps_factory.h
-	demo/caps/demo_defs.h
+  demo/caps/caps_demo.cc
+  demo/caps/random_caps_factory.cc
+  demo/caps/random_caps_factory.h
+  demo/caps/demo_defs.h
 )
 add_executable (caps_demo ${caps_demo_src_files})
 target_link_libraries (caps_demo
-	caps
-	misc
+  caps
+  misc
 )
 set(caps_size_src_files
-	demo/caps/caps_size.cc
+  demo/caps/caps_size.cc
 )
 add_executable(caps_size ${caps_size_src_files})
 target_link_libraries(caps_size
-	caps
+  caps
 )
 set(rlog_demo_src_files
-	demo/log/rlog_demo.cc
+  demo/log/rlog_demo.cc
 )
 add_executable(rlog_demo ${rlog_demo_src_files})
 target_link_libraries(rlog_demo
-	rlog
+  rlog
 )
 set(tcp_rlogcat_src_files
-	demo/log/tcp-rlogcat.cc
+  demo/log/tcp-rlogcat.cc
 )
 add_executable(tcp-rlogcat ${tcp_rlogcat_src_files})
 add_executable(heapsort-demo
