@@ -94,10 +94,10 @@ public:
              const char* tag, const char* fmt, va_list ap) {
     if (tag == nullptr || fmt == nullptr)
       return;
-    uint32_t c = format_string(buffer, bufsize, file, line, lv, tag,
-                               fmt, ap);
 
     writer_mutex.lock();
+    uint32_t c = format_string(buffer, bufsize, file, line, lv, tag,
+                               fmt, ap);
     auto it = enabled_writers.begin();
     while (it != enabled_writers.end()) {
       it->second->writer->write(buffer, c);
