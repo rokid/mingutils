@@ -90,11 +90,15 @@ int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, bool enable)
 #define ROKID_LOG_ENABLED 2
 #endif
 
+#ifdef __ANDROID__
+#define RLOG_PRINT(lv, tag, fmt, ...)  android_log_print(__FILE__, __LINE__, lv, tag, fmt, ##__VA_ARGS__)
+#else
 #ifdef __cplusplus
 #define RLOG_PRINT(lv, tag, fmt, ...)  RLog::print(__FILE__, __LINE__, lv, tag, fmt, ##__VA_ARGS__)
 #else
-#define RLOG_PRINT(lv, tag, fmt, ...)  RLog::print(__FILE__, __LINE__, lv, tag, fmt, ##__VA_ARGS__)
-#endif
+#define RLOG_PRINT(lv, tag, fmt, ...)  rokid_log_print(__FILE__, __LINE__, lv, tag, fmt, ##__VA_ARGS__)
+#endif // __cplusplus
+#endif // __ANDROID__
 
 #if ROKID_LOG_ENABLED <= 0
 #define KLOGV(tag, fmt, ...) RLOG_PRINT(ROKID_LOGLEVEL_VERBOSE, tag, fmt, ##__VA_ARGS__)

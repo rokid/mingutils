@@ -167,10 +167,13 @@ private:
 };
 
 static RLogInst rlog_inst_(WRITE_BUFFER_SIZE);
+// in android platform, don't write log to stdout
+#if !defined(__ANDROID__)
 static int ooxx = ([]() {
   RLog::add_endpoint("std", ROKID_LOGWRITER_FD);
   rlog_inst_.enable_endpoint("std", (void *)STDOUT_FILENO, true);
 }(), 0);
+#endif
 
 int32_t RLog::add_endpoint(const char* name, RLogWriter* writer) {
   if (name == nullptr)
@@ -269,3 +272,32 @@ void rokid_log_remove_endpoint(const char *name) {
 int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, bool enable) {
   return RLog::enable_endpoint(name, init_arg, enable);
 }
+
+#ifdef __ANDROID__
+#include <android/log.h>
+static int to_android_loglevel(RokidLogLevel lv) {
+  static int android_loglevel[] = {
+    ANDROID_LOG_VERBOSE,
+    ANDROID_LOG_DEBUG,
+    ANDROID_LOG_INFO,
+    ANDROID_LOG_WARN,
+    ANDROID_LOG_ERROR
+  };
+  if (lv < 0 || lv >= ROKID_LOGLEVEL_NUMBER)
+    return ANDROID_LOG_DEFAULT;
+  return android_loglevel[lv];
+}
+
+void android_log_print(const char *file, int line, RokidLogLevel lv,
+                       const char* tag, const char* fmt, ...) {
+  int prio = to_android_loglevel(lv);
+  va_list ap;
+  va_start(ap, fmt);
+  __android_log_vprint(prio, tag, fmt, ap);
+  va_end(ap);
+
+  va_start(ap, fmt);
+  rlog_inst_.print(file, line, lv, tag, fmt, ap);
+  va_end(ap);
+}
+#endif
