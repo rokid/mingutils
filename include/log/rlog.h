@@ -71,8 +71,13 @@ typedef struct {
   RokidLogWrite write;
 } RokidLogWriter;
 
+#ifdef __ANDROID__
+void android_log_print(const char *file, int line, RokidLogLevel lv,
+                     const char* tag, const char* fmt, ...);
+#else
 void rokid_log_print(const char *file, int line, RokidLogLevel lv,
                      const char* tag, const char* fmt, ...);
+#endif
 
 int32_t rokid_log_add_endpoint(const char *name, RokidLogWriter *writer, void *arg);
 

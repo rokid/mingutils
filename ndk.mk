@@ -20,6 +20,7 @@ My_All_Files := \
 LOCAL_SRC_FILES := $(My_All_Files)
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/include/log
+LOCAL_STATIC_LIBRARIES := libmisc
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include/log
 include $(BUILD_SHARED_LIBRARY)
 
