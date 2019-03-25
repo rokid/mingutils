@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <string.h>
 #include <list>
 #include <mutex>
