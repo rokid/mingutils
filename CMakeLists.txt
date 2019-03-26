@@ -7,11 +7,6 @@ if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
-option(USE_GCC "force use gcc" OFF)
-if (USE_GCC)
-SET(CMAKE_C_COMPILER gcc)
-SET(CMAKE_CXX_COMPILER g++)
-endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
   set(COMPILER_IS_CLANG true)
 else()
@@ -42,7 +37,7 @@ file(GLOB misc_src_files
   include/misc/*.h
   src/misc/*.cc
 )
-add_library(misc STATIC
+add_library(misc SHARED
   ${misc_src_files}
 )
 target_include_directories(misc PUBLIC
@@ -50,6 +45,13 @@ target_include_directories(misc PUBLIC
 )
 target_compile_options(misc PRIVATE
   -fPIC
+)
+add_library(misc_static STATIC
+  ${misc_src_files}
+)
+set_target_properties(misc_static PROPERTIES OUTPUT_NAME misc)
+target_include_directories(misc_static PUBLIC
+  include/misc
 )
 install(DIRECTORY include/misc
   DESTINATION include
@@ -72,6 +74,17 @@ target_include_directories (rlog PUBLIC
 target_link_libraries (rlog
   misc
 )
+add_library (rlog_static STATIC
+  ${rlog_src_files}
+)
+set_target_properties(rlog_static PROPERTIES OUTPUT_NAME rlog)
+target_include_directories (rlog_static PUBLIC
+  include/log
+  include/misc
+)
+target_link_libraries (rlog_static
+  misc
+)
 install (DIRECTORY include/log
   DESTINATION include
 )
@@ -87,12 +100,19 @@ add_library(caps SHARED
 target_include_directories(caps PUBLIC
   include/caps
 )
+add_library(caps_static STATIC
+  ${caps_src_files}
+)
+set_target_properties(caps_static PROPERTIES OUTPUT_NAME caps)
+target_include_directories(caps_static PUBLIC
+  include/caps
+)
 install(DIRECTORY include/caps
   DESTINATION include
 )
 
 # install targets
-install (TARGETS rlog misc caps
+install (TARGETS rlog misc caps rlog_static misc_static caps_static
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
