@@ -43,13 +43,13 @@ add_library(misc SHARED
 target_include_directories(misc PUBLIC
   include/misc
 )
-target_compile_options(misc PRIVATE
-  -fPIC
-)
 add_library(misc_static STATIC
   ${misc_src_files}
 )
-set_target_properties(misc_static PROPERTIES OUTPUT_NAME misc)
+set_target_properties(misc_static PROPERTIES
+  OUTPUT_NAME misc
+  POSITION_INDEPENDENT_CODE ON
+)
 target_include_directories(misc_static PUBLIC
   include/misc
 )
@@ -77,7 +77,10 @@ target_link_libraries (rlog
 add_library (rlog_static STATIC
   ${rlog_src_files}
 )
-set_target_properties(rlog_static PROPERTIES OUTPUT_NAME rlog)
+set_target_properties(rlog_static PROPERTIES
+  OUTPUT_NAME rlog
+  POSITION_INDEPENDENT_CODE ON
+)
 target_include_directories (rlog_static PUBLIC
   include/log
   include/misc
@@ -103,7 +106,10 @@ target_include_directories(caps PUBLIC
 add_library(caps_static STATIC
   ${caps_src_files}
 )
-set_target_properties(caps_static PROPERTIES OUTPUT_NAME caps)
+set_target_properties(caps_static PROPERTIES
+  OUTPUT_NAME caps
+  POSITION_INDEPENDENT_CODE ON
+)
 target_include_directories(caps_static PUBLIC
   include/caps
 )
