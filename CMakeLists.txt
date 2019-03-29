@@ -7,6 +7,8 @@ if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
+set(BUILD_LIBRARY_TYPE SHARED CACHE STRING "force build library type")
+
 option(USE_GCC "force use gcc" OFF)
 if (USE_GCC)
 SET(CMAKE_C_COMPILER gcc)
@@ -62,7 +64,7 @@ file (GLOB_RECURSE rlog_src_files
   include/log/*.h
 )
 
-add_library (rlog SHARED
+add_library (rlog ${BUILD_LIBRARY_TYPE}
   ${rlog_src_files}
 )
 target_include_directories (rlog PUBLIC
@@ -81,7 +83,7 @@ file(GLOB caps_src_files
   include/caps/*.h
   src/caps/*.cc
 )
-add_library(caps SHARED
+add_library(caps ${BUILD_LIBRARY_TYPE}
   ${caps_src_files}
 )
 target_include_directories(caps PUBLIC

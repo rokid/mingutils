@@ -12,6 +12,7 @@ Configuration:
     --build-dir=DIR             build directory
     --prefix=PREFIX             install prefix
     --cmake-modules=DIR         directory of cmake modules file exist
+    --build-library-type=*      force build library type(STATIC|SHARED)
     --use-gcc                   force use gcc compiler (in macosx)
 
 Cross Compile:
@@ -61,6 +62,9 @@ do
 		--cross-prefix=*)
 			CMAKE_ARGS=(${CMAKE_ARGS[@]} -DCROSS_PREFIX=$conf_optarg)
 			;;
+    --build-library-type=*)
+      CMAKE_ARGS=(${CMAKE_ARGS[@]} -DBUILD_LIBRARY_TYPE=$conf_optarg)
+      ;;
 	esac
 done
 
