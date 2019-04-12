@@ -136,6 +136,9 @@ else()
   target_compile_options(clargs_demo PRIVATE -Wno-write-strings)
 endif()
 
+add_executable (xmopt-demo demo/misc/xmopt-demo.cc)
+target_include_directories(xmopt-demo PRIVATE include/misc)
+
 set(vq_demo_src_files
   demo/misc/vq_demo.cc
 )
