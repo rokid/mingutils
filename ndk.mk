@@ -2,7 +2,6 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := librlog
-LOCAL_LDLIBS := -llog
 
 MY_FILES_PATH := $(LOCAL_PATH)/src/log
 MY_FILES_SUFFIX := %.cpp %.c %.cc
@@ -22,7 +21,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/include/log
 LOCAL_STATIC_LIBRARIES := libmisc
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include/log
-include $(BUILD_SHARED_LIBRARY)
+include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libcaps
@@ -49,7 +48,6 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libmisc
-LOCAL_LDLIBS := -llog
 
 MY_FILES_PATH := $(LOCAL_PATH)/src/misc
 MY_FILES_SUFFIX := %.cpp %.c %.cc
