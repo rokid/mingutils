@@ -14,12 +14,15 @@ void printOption(XMOptions& options, const char* key) {
 
 int main(int argc, char **argv) {
   XMOptions options;
+	options.option("h", "help", "print this message");
   options.option(nullptr, "foo", "example param 1");
   options.option("b", "bar", "example param 2");
   if (!options.parse(argc, argv)) {
     string msg;
     options.errorMsg(msg);
     printf("%s\n", msg.c_str());
+		options.prompt(msg);
+		printf("%s\n", msg.c_str());
     return 1;
   }
 

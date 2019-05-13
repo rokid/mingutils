@@ -230,6 +230,28 @@ parseArg:
   }
 
   void prompt(std::string &msg) {
+		msg = "options:\n";
+		bool comma;
+		auto it = optionDeclarations.begin();
+		while (it != optionDeclarations.end()) {
+			comma = false;
+			msg += "  ";
+			if (!it->abbKey.empty()) {
+				msg += '-';
+				msg += it->abbKey;
+				comma = true;
+			}
+			if (!it->fullKey.empty()) {
+				if (comma)
+					msg += ',';
+				msg += "--";
+				msg += it->fullKey;
+			}
+			msg += "    ";
+			msg += it->desc;
+			msg += '\n';
+			++it;
+		}
   }
 
   OptionSet find(const char* key) {
