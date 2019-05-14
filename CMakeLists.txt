@@ -31,6 +31,8 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${common_cxxflags}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
 set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
 
+include(${CUSTOM_CMAKE_MODULES}/common.mk)
+
 # target 'misc'
 file(GLOB misc_src_files
   include/misc/*.h
@@ -123,6 +125,11 @@ install (TARGETS rlog misc caps rlog_static misc_static caps_static
 )
 # build demo
 if (BUILD_DEMO)
+findPackage(gtest REQUIRED
+  HINTS ${gtestPrefix}
+  HEADERS gtest/gtest.h
+  STATIC_LIBS gtest
+)
 set(clargs_demo_src_files
   demo/misc/clargs_demo.cc
 )
@@ -193,5 +200,16 @@ target_include_directories(heapsort-demo PRIVATE
 add_executable(thr-pool-demo demo/misc/thr-pool-demo.cc)
 target_include_directories(thr-pool-demo PRIVATE
   include/misc
+)
+add_executable(tests
+  tests/main.cpp
+  tests/misc/test-circle-stream.cpp
+)
+target_include_directories(tests PRIVATE
+  include/misc
+  ${gtest_INCLUDE_DIRS}
+)
+target_link_libraries(tests
+  ${gtest_LIBRARIES}
 )
 endif(BUILD_DEMO)

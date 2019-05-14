@@ -13,6 +13,9 @@ Configuration:
     --prefix=PREFIX             install prefix
     --cmake-modules=DIR         directory of cmake modules file exist
 
+Dependencies:
+    --gtest=DIR                 specify install dir of gtest
+
 Cross Compile:
     --toolchain=DIR             toolchain install dir
     --cross-prefix=PREFIX       compiler name prefix
@@ -50,6 +53,9 @@ do
     --cmake-modules=*)
       cmake_modules_dir=$conf_optarg
       ;;
+    --gtest=*)
+      CMAKE_ARGS=(${CMAKE_ARGS[@]} -DgtestPrefix=$conf_optarg)
+      ;;
     --toolchain=*)
       CMAKE_ARGS=(${CMAKE_ARGS[@]} -DTOOLCHAIN_HOME=$conf_optarg)
       CROSS_COMPILE=yes
@@ -60,6 +66,7 @@ do
   esac
 done
 
+CMAKE_ARGS=(${CMAKE_ARGS[@]} -DCUSTOM_CMAKE_MODULES=$cmake_modules_dir)
 CUR_DIR=`pwd`
 if [ x$CROSS_COMPILE = x"yes" ]; then
 CMAKE_ARGS=(${CMAKE_ARGS[@]} -DCMAKE_TOOLCHAIN_FILE=$cmake_modules_dir/toolchain.cmake)
