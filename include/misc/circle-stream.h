@@ -157,6 +157,8 @@ public:
     return _control == nullptr || _control->space_size == _remain_size;
   }
 
+  inline uint32_t header_size() const { return sizeof(ControlData); }
+
 private:
   // memory adress of begin of queue data space
   uint8_t *_begin = nullptr;
