@@ -31,8 +31,6 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${common_cxxflags}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
 set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
 
-include(${CUSTOM_CMAKE_MODULES}/common.mk)
-
 # target 'misc'
 file(GLOB misc_src_files
   include/misc/*.h
@@ -125,6 +123,7 @@ install (TARGETS rlog misc caps rlog_static misc_static caps_static
 )
 # build demo
 if (BUILD_DEMO)
+include(${CUSTOM_CMAKE_MODULES}/common.mk)
 findPackage(gtest REQUIRED
   HINTS ${gtestPrefix}
   HEADERS gtest/gtest.h
