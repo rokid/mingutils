@@ -1,8 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <string>
+#include <string.h>
 #include <sys/mman.h>
+#include <string>
 
 #define MIN_MEM_SIZE sizeof(ControlData)
 
