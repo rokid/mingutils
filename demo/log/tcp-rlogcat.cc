@@ -50,7 +50,8 @@ int main(int argc, char** argv) {
     if (c <= 0)
       break;
     buf[c] = '\0';
-    printf("%s", buf);
+    fprintf(stdout, "%s", buf);
+    fflush(stdout);
   }
   close(fd);
   return 0;
