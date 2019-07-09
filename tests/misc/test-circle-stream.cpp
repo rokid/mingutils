@@ -66,5 +66,5 @@ TEST(CircleStream, randomAccess) {
   testVariables.testing = false;
   testVariables.streamAvail.notify_one();
   testVariables.streamMutex.unlock();
-  thrPool.close();
+  thrPool.finish();
 }

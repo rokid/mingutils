@@ -50,6 +50,8 @@ private:
         thr_cond.notify_one();
         locker.unlock();
         thr.join();
+        locker.lock();
+        flags = 0;
       }
     }
 
@@ -92,10 +94,10 @@ public:
   }
 
   ~ThreadPool() {
-    close();
+    finish();
   }
 
-  void push(TaskFunc &task) {
+  void push(TaskFunc task) {
     std::lock_guard<std::mutex> locker(task_mutex);
     if (idle_threads.empty()) {
       pending_tasks.push_back(task);
@@ -105,16 +107,7 @@ public:
     }
   }
 
-  void push(TaskFunc &&task) {
-    push(task);
-  }
-
   void finish() {
-    close();
-    init_idle_threads();
-  }
-
-  void close() {
     size_t sz = thread_array.size();
     size_t i;
     for (i = 0; i < sz; ++i) {
@@ -122,7 +115,6 @@ public:
     }
     std::lock_guard<std::mutex> locker(task_mutex);
     pending_tasks.clear();
-    idle_threads.clear();
   }
 
 private:
@@ -151,7 +143,7 @@ private:
 
 private:
   std::list<TaskFunc> pending_tasks;
-  std::list<TaskThread *> idle_threads;
+  std::list<TaskThread*> idle_threads;
   std::mutex task_mutex;
   std::vector<TaskThread> thread_array;
 

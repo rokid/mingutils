@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
   for (i = 0; i < total; ++i) {
     pool.push(taskfunc);
   }
-  pool.close();
+  pool.finish();
 
   printf("counter == %d, excepted %d\n", counter.load(), total);
   return 0;
