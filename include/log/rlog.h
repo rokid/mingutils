@@ -40,6 +40,14 @@ public:
   virtual void destroy() = 0;
 
   virtual bool write(const char *data, uint32_t size) = 0;
+
+  /// \return  0  should call 'write'
+  //           1  don't call 'write'
+  //           -1 error, will not call 'write'
+  virtual int32_t raw_write(const char* file, int line, RokidLogLevel lv,
+      const char* tag, const char* fmt, va_list ap) {
+    return 0;
+  }
 };
 
 class RLog {

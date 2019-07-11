@@ -96,18 +96,21 @@ public:
       return;
 
     writer_mutex.lock();
-    uint32_t c = format_string(buffer, bufsize, file, line, lv, tag,
-                               fmt, ap);
+    int32_t c{-1};
     auto it = enabled_writers.begin();
     while (it != enabled_writers.end()) {
-      it->second->writer->write(buffer, c);
+      if (it->second->writer->raw_write(file, line, lv, tag, fmt, ap) == 0) {
+        if (c < 0)
+          c = format_string(buffer, bufsize, file, line, lv, tag, fmt, ap);
+        it->second->writer->write(buffer, c);
+      }
       ++it;
     }
     writer_mutex.unlock();
   }
 
 private:
-  static uint32_t format_string(char *out, uint32_t maxout,
+  static int32_t format_string(char *out, uint32_t maxout,
                                 const char *file, int line,
                                 RokidLogLevel lv, const char *tag,
                                 const char *fmt, va_list ap) {

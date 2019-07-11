@@ -79,6 +79,7 @@ private:
         printf("socket accept failed: %s\n", strerror(errno));
         break;
       }
+      set_write_timeout(newfd, write_timeout);
       sockets_mutex.lock();
       cli_sockets.push_back(newfd);
       sockets_mutex.unlock();
@@ -156,10 +157,18 @@ private:
     return accept(lfd, (sockaddr *)&addr, &addr_len);
   }
 
+  static void set_write_timeout(int sock, uint32_t timeout) {
+    struct timeval tv;
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = (timeout % 1000) * 1000;
+    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+  }
+
 private:
   int listen_fd = -1;
   std::list<int> cli_sockets;
   std::mutex sockets_mutex;
   std::thread listen_thread;
   int (SocketServiceWriter::*accept_func)(int) = nullptr;
+  uint32_t write_timeout{800};
 };
