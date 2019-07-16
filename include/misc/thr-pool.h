@@ -7,13 +7,32 @@
 #include <chrono>
 #include <list>
 #include <vector>
+#include <algorithm>
 
 #define TASKTHREAD_FLAG_CREATED 1
 #define TASKTHREAD_FLAG_SHOULD_EXIT 2
+#define TASK_OP_QUEUE 0
+#define TASK_OP_DOING 1
+#define TASK_OP_DONE 2
+#define TASK_OP_DISCARD 3
 
 class ThreadPool {
 private:
   typedef std::function<void()> TaskFunc;
+  /// \param op  0: queue  1: doing  2: done  3: discard
+  typedef std::function<void(int32_t op)> TaskCallback;
+
+  class TaskInfo {
+  public:
+    TaskInfo() {
+    }
+
+    TaskInfo(TaskFunc f, TaskCallback c) : func(f), cb(c) {
+    }
+
+    TaskFunc func;
+    TaskCallback cb;
+  };
 
   class TaskThread {
   public:
@@ -27,7 +46,7 @@ private:
       the_pool = pool;
     }
 
-    void do_task(TaskFunc &func) {
+    void awake() {
       std::unique_lock<std::mutex> locker(thr_mutex);
       if ((flags & TASKTHREAD_FLAG_CREATED) == 0
           && (flags & TASKTHREAD_FLAG_SHOULD_EXIT) == 0) {
@@ -36,11 +55,10 @@ private:
             this->run();
             });
         flags |= TASKTHREAD_FLAG_CREATED;
-        thr_cond.wait(locker);
+      } else {
+        // launch task
+        thr_cond.notify_one();
       }
-      // launch task
-      task_func = func;
-      thr_cond.notify_one();
     }
 
     void exit() {
@@ -61,15 +79,17 @@ private:
       thr_cond.notify_one();
 
       while ((flags & TASKTHREAD_FLAG_SHOULD_EXIT) == 0) {
-        if (task_func) {
-          task_func();
-          task_func = the_pool->get_pending_task();
-          if (task_func)
-            continue;
-          else
-            the_pool->push_idle_thread(this);
+        if (the_pool->get_pending_task(task)) {
+          if (task.cb)
+            task.cb(TASK_OP_DOING);
+          if (task.func)
+            task.func();
+          if (task.cb)
+            task.cb(TASK_OP_DONE);
+        } else {
+          the_pool->push_idle_thread(this);
+          thr_cond.wait(locker);
         }
-        thr_cond.wait(locker);
       }
     }
 
@@ -78,7 +98,7 @@ private:
     std::thread thr;
     std::mutex thr_mutex;
     std::condition_variable thr_cond;
-    TaskFunc task_func;
+    TaskInfo task;
     uint32_t flags = 0;
   };
 
@@ -97,14 +117,17 @@ public:
     finish();
   }
 
-  void push(TaskFunc task) {
-    std::lock_guard<std::mutex> locker(task_mutex);
-    if (idle_threads.empty()) {
-      pending_tasks.push_back(task);
-    } else {
-      idle_threads.front()->do_task(task);
-      idle_threads.pop_front();
-    }
+  void push(TaskFunc task, TaskCallback cb = nullptr) {
+    std::unique_lock<std::mutex> locker(task_mutex);
+    pending_tasks.push_back({ task, cb });
+    if (cb)
+      cb(TASK_OP_QUEUE);
+    if (idle_threads.empty())
+      return;
+    auto thr = idle_threads.front();
+    idle_threads.pop_front();
+    locker.unlock();
+    thr->awake();
   }
 
   void finish() {
@@ -114,6 +137,10 @@ public:
       thread_array[i].exit();
     }
     std::lock_guard<std::mutex> locker(task_mutex);
+    for_each(pending_tasks.begin(), pending_tasks.end(), [](TaskInfo& task) {
+      if (task.cb)
+        task.cb(TASK_OP_DISCARD);
+    });
     pending_tasks.clear();
   }
 
@@ -127,13 +154,16 @@ private:
     }
   }
 
-  TaskFunc get_pending_task() {
+  bool get_pending_task(TaskInfo& task) {
     std::lock_guard<std::mutex> locker(task_mutex);
-    if (pending_tasks.empty())
-      return nullptr;
-    TaskFunc func = pending_tasks.front();
+    if (pending_tasks.empty()) {
+      task.func = nullptr;
+      task.cb = nullptr;
+      return false;
+    }
+    task = pending_tasks.front();
     pending_tasks.pop_front();
-    return func;
+    return true;
   }
 
   void push_idle_thread(TaskThread *thr) {
@@ -142,7 +172,7 @@ private:
   }
 
 private:
-  std::list<TaskFunc> pending_tasks;
+  std::list<TaskInfo> pending_tasks;
   std::list<TaskThread*> idle_threads;
   std::mutex task_mutex;
   std::vector<TaskThread> thread_array;
