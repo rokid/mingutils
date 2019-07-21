@@ -9,6 +9,8 @@
 #include <vector>
 #include <algorithm>
 
+#define THRPOOL_INITIALIZED 1
+#define THRPOOL_MAX_THREADS 1024
 #define TASKTHREAD_FLAG_CREATED 1
 #define TASKTHREAD_FLAG_SHOULD_EXIT 2
 #define TASK_OP_QUEUE 0
@@ -39,33 +41,33 @@ private:
     TaskThread() {
     }
 
-    TaskThread(const TaskThread &&o) {
+    TaskThread(const TaskThread& o) {
     }
 
-    void set_thr_pool(ThreadPool *pool) {
-      the_pool = pool;
+    void setThreadPool(ThreadPool *pool) {
+      thePool = pool;
     }
 
     void awake() {
-      std::unique_lock<std::mutex> locker(thr_mutex);
+      std::unique_lock<std::mutex> locker(thrMutex);
       if ((flags & TASKTHREAD_FLAG_CREATED) == 0
           && (flags & TASKTHREAD_FLAG_SHOULD_EXIT) == 0) {
         // init
-        thr = std::thread([this]() {
-            this->run();
-            });
+        thr = std::thread([this]() { run(); });
         flags |= TASKTHREAD_FLAG_CREATED;
-      } else {
-        // launch task
-        thr_cond.notify_one();
       }
     }
 
-    void exit() {
-      std::unique_lock<std::mutex> locker(thr_mutex);
+    void work() {
+      std::lock_guard<std::mutex> locker(thrMutex);
+      thrCond.notify_one();
+    }
+
+    void sleep() {
+      std::unique_lock<std::mutex> locker(thrMutex);
       flags |= TASKTHREAD_FLAG_SHOULD_EXIT;
       if (thr.joinable()) {
-        thr_cond.notify_one();
+        thrCond.notify_one();
         locker.unlock();
         thr.join();
         locker.lock();
@@ -75,11 +77,11 @@ private:
 
   private:
     void run() {
-      std::unique_lock<std::mutex> locker(thr_mutex);
-      thr_cond.notify_one();
+      std::unique_lock<std::mutex> locker(thrMutex);
+      TaskInfo task;
 
       while ((flags & TASKTHREAD_FLAG_SHOULD_EXIT) == 0) {
-        if (the_pool->get_pending_task(task)) {
+        if (thePool->getPendingTask(task)) {
           if (task.cb)
             task.cb(TASK_OP_DOING);
           if (task.func)
@@ -87,95 +89,129 @@ private:
           if (task.cb)
             task.cb(TASK_OP_DONE);
         } else {
-          the_pool->push_idle_thread(this);
-          thr_cond.wait(locker);
+          thePool->pushIdleThread(this);
+          thrCond.wait(locker);
         }
       }
     }
 
   private:
-    ThreadPool *the_pool = nullptr;
+    ThreadPool *thePool{nullptr};
     std::thread thr;
-    std::mutex thr_mutex;
-    std::condition_variable thr_cond;
-    TaskInfo task;
-    uint32_t flags = 0;
+    std::mutex thrMutex;
+    std::condition_variable thrCond;
+    uint32_t flags{0};
   };
 
 public:
-  explicit ThreadPool(uint32_t max) {
-    thread_array.resize(max);
+  ThreadPool() {
+  }
 
-    uint32_t i;
-    for (i = 0; i < max; ++i) {
-      thread_array[i].set_thr_pool(this);
-    }
-    init_idle_threads();
+  explicit ThreadPool(uint32_t max) {
+    init(max);
   }
 
   ~ThreadPool() {
     finish();
   }
 
+  void init(uint32_t max) {
+    std::lock_guard<std::mutex> locker(poolMutex);
+    if (max == 0 || max > THRPOOL_MAX_THREADS || status & THRPOOL_INITIALIZED)
+      return;
+    status |= THRPOOL_INITIALIZED;
+    threadArray.resize(max);
+
+    uint32_t i;
+    for (i = 0; i < max; ++i) {
+      threadArray[i].setThreadPool(this);
+    }
+    initSleepThreads();
+  }
+
   void push(TaskFunc task, TaskCallback cb = nullptr) {
-    std::unique_lock<std::mutex> locker(task_mutex);
-    pending_tasks.push_back({ task, cb });
+    std::lock_guard<std::mutex> locker(poolMutex);
+    taskMutex.lock();
+    pendingTasks.push_back({ task, cb });
+    taskMutex.unlock();
     if (cb)
       cb(TASK_OP_QUEUE);
-    if (idle_threads.empty())
-      return;
-    auto thr = idle_threads.front();
-    idle_threads.pop_front();
-    locker.unlock();
-    thr->awake();
+    if (!idleThreads.empty()) {
+      auto thr = idleThreads.front();
+      idleThreads.pop_front();
+      thr->work();
+    } else if (!sleepThreads.empty()) {
+      auto thr = sleepThreads.front();
+      sleepThreads.pop_front();
+      thr->awake();
+    }
   }
 
   void finish() {
-    size_t sz = thread_array.size();
-    size_t i;
-    for (i = 0; i < sz; ++i) {
-      thread_array[i].exit();
+    std::lock_guard<std::mutex> locker(poolMutex);
+    std::unique_lock<std::mutex> taskLocker(taskMutex);
+    while (!pendingTasks.empty()) {
+      tasksDone.wait(taskLocker);
     }
-    std::lock_guard<std::mutex> locker(task_mutex);
-    for_each(pending_tasks.begin(), pending_tasks.end(), [](TaskInfo& task) {
-      if (task.cb)
-        task.cb(TASK_OP_DISCARD);
-    });
-    pending_tasks.clear();
+    taskLocker.unlock();
+    clearNolock();
+  }
+
+  void clear() {
+    std::lock_guard<std::mutex> locker(poolMutex);
+    clearNolock();
   }
 
 private:
-  void init_idle_threads() {
-    std::lock_guard<std::mutex> locker(task_mutex);
-    size_t sz = thread_array.size();
+  void initSleepThreads() {
+    size_t sz = threadArray.size();
     size_t i;
     for (i = 0; i < sz; ++i) {
-      idle_threads.push_back(thread_array.data() + i);
+      sleepThreads.push_back(threadArray.data() + i);
     }
   }
 
-  bool get_pending_task(TaskInfo& task) {
-    std::lock_guard<std::mutex> locker(task_mutex);
-    if (pending_tasks.empty()) {
+  bool getPendingTask(TaskInfo& task) {
+    std::lock_guard<std::mutex> locker(taskMutex);
+    if (pendingTasks.empty()) {
       task.func = nullptr;
       task.cb = nullptr;
+      tasksDone.notify_one();
       return false;
     }
-    task = pending_tasks.front();
-    pending_tasks.pop_front();
+    task = pendingTasks.front();
+    pendingTasks.pop_front();
     return true;
   }
 
-  void push_idle_thread(TaskThread *thr) {
-    std::lock_guard<std::mutex> locker(task_mutex);
-    idle_threads.push_back(thr);
+  void pushIdleThread(TaskThread* thr) {
+    std::lock_guard<std::mutex> locker(taskMutex);
+    idleThreads.push_back(thr);
+  }
+
+  void clearNolock() {
+    size_t sz = threadArray.size();
+    size_t i;
+    for (i = 0; i < sz; ++i) {
+      threadArray[i].sleep();
+    }
+    for_each(pendingTasks.begin(), pendingTasks.end(), [](TaskInfo& task) {
+      if (task.cb)
+        task.cb(TASK_OP_DISCARD);
+    });
+    pendingTasks.clear();
+    initSleepThreads();
   }
 
 private:
-  std::list<TaskInfo> pending_tasks;
-  std::list<TaskThread*> idle_threads;
-  std::mutex task_mutex;
-  std::vector<TaskThread> thread_array;
+  std::list<TaskInfo> pendingTasks;
+  std::list<TaskThread*> idleThreads;
+  std::list<TaskThread*> sleepThreads;
+  std::mutex poolMutex;
+  std::mutex taskMutex;
+  std::condition_variable tasksDone;
+  std::vector<TaskThread> threadArray;
+  uint32_t status{0};
 
   friend TaskThread;
 };

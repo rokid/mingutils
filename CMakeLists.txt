@@ -203,6 +203,7 @@ target_include_directories(thr-pool-demo PRIVATE
 add_executable(tests
   tests/main.cpp
   tests/misc/test-circle-stream.cpp
+  tests/misc/test-thr-pool.cpp
 )
 target_include_directories(tests PRIVATE
   include/misc
