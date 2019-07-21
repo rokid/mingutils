@@ -131,16 +131,20 @@ public:
 
   void push(TaskFunc task, TaskCallback cb = nullptr) {
     std::lock_guard<std::mutex> locker(poolMutex);
-    taskMutex.lock();
+    std::unique_lock<std::mutex> taskLocker(taskMutex);
     pendingTasks.push_back({ task, cb });
-    taskMutex.unlock();
+    taskLocker.unlock();
     if (cb)
       cb(TASK_OP_QUEUE);
+    taskLocker.lock();
     if (!idleThreads.empty()) {
       auto thr = idleThreads.front();
       idleThreads.pop_front();
       thr->work();
-    } else if (!sleepThreads.empty()) {
+      return;
+    }
+    taskLocker.unlock();
+    if (!sleepThreads.empty()) {
       auto thr = sleepThreads.front();
       sleepThreads.pop_front();
       thr->awake();
@@ -202,8 +206,8 @@ private:
         task.cb(TASK_OP_DISCARD);
     });
     pendingTasks.clear();
-    taskMutex.unlock();
     idleThreads.clear();
+    taskMutex.unlock();
     initSleepThreads();
   }
 
