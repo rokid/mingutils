@@ -166,6 +166,7 @@ private:
   void initSleepThreads() {
     size_t sz = threadArray.size();
     size_t i;
+    sleepThreads.clear();
     for (i = 0; i < sz; ++i) {
       sleepThreads.push_back(threadArray.data() + i);
     }
@@ -200,6 +201,7 @@ private:
         task.cb(TASK_OP_DISCARD);
     });
     pendingTasks.clear();
+    idleThreads.clear();
     initSleepThreads();
   }
 
