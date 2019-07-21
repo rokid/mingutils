@@ -196,11 +196,13 @@ private:
     for (i = 0; i < sz; ++i) {
       threadArray[i].sleep();
     }
+    taskMutex.lock();
     for_each(pendingTasks.begin(), pendingTasks.end(), [](TaskInfo& task) {
       if (task.cb)
         task.cb(TASK_OP_DISCARD);
     });
     pendingTasks.clear();
+    taskMutex.unlock();
     idleThreads.clear();
     initSleepThreads();
   }
