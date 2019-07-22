@@ -71,8 +71,8 @@ private:
         locker.unlock();
         thr.join();
         locker.lock();
-        flags = 0;
       }
+      flags = 0;
     }
 
   private:
