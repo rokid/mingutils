@@ -200,10 +200,17 @@ add_executable(thr-pool-demo demo/misc/thr-pool-demo.cc)
 target_include_directories(thr-pool-demo PRIVATE
   include/misc
 )
+add_library(global-error1 SHARED tests/misc/global-error-shared1.cpp)
+target_include_directories(global-error1 PRIVATE include/misc)
+target_link_libraries(global-error1 misc_static)
+add_library(global-error2 SHARED tests/misc/global-error-shared2.cpp)
+target_include_directories(global-error2 PRIVATE include/misc)
+target_link_libraries(global-error2 misc_static)
 add_executable(tests
   tests/main.cpp
   tests/misc/test-circle-stream.cpp
   tests/misc/test-thr-pool.cpp
+  tests/misc/test-global-error.cpp
 )
 target_include_directories(tests PRIVATE
   include/misc
@@ -211,5 +218,7 @@ target_include_directories(tests PRIVATE
 )
 target_link_libraries(tests
   ${gtest_LIBRARIES}
+  global-error1
+  global-error2
 )
 endif(BUILD_DEMO)
